@@ -32,17 +32,10 @@ intents: [
 });
 
 const telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-  polling: true,
+  polling: false,
 });
 
-telegramBot.on("message", (msg) => {
-  console.log("Telegram Chat ID:", msg.chat.id);
 
-  telegramBot.sendMessage(
-    msg.chat.id,
-    `🔥 Xenon Ally connected successfully.\n\nYour Telegram ID:\n${msg.chat.id}`
-  );
-});
 
 
 
