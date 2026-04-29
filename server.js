@@ -16,6 +16,7 @@ require("dotenv").config();
 const { Client, GatewayIntentBits } = require("discord.js");
 const express = require("express");
 const axios = require("axios");
+const TelegramBot = require("node-telegram-bot-api");
 console.log("Whop key loaded:", process.env.WHOP_API_KEY ? "YES" : "NO");
 
 const app = express();
@@ -28,6 +29,19 @@ intents: [
   GatewayIntentBits.GuildMessages,
   GatewayIntentBits.MessageContent
 ],
+});
+
+const telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
+  polling: true,
+});
+
+telegramBot.on("message", (msg) => {
+  console.log("Telegram Chat ID:", msg.chat.id);
+
+  telegramBot.sendMessage(
+    msg.chat.id,
+    `🔥 Xenon Ally connected successfully.\n\nYour Telegram ID:\n${msg.chat.id}`
+  );
 });
 
 
@@ -85,6 +99,7 @@ app.post("/webhook", async (req, res) => {
 const whopMember = await checkWhopSubscription(user);
 
 const discordId = whopMember?.discord?.id;
+const telegramId = whopMember?.telegram_account_id;
 
 
 
@@ -93,12 +108,13 @@ if (!whopMember) {
   return res.json({ message: "User not subscribed" });
 }
 
-if (!discordId) {
-  console.log("❌ No Discord connected in Whop:", user);
-  return res.json({ message: "Discord account not found in Whop" });
+if (!discordId && !telegramId) {
+  console.log("❌ No Discord or Telegram connected:", user);
+  return res.json({ message: "No connected account found" });
 }
 
-const targetUser = await client.users.fetch(discordId);
+if (discordId) {
+  const targetUser = await client.users.fetch(discordId);
 
 const insight =
   signal === "BUY"
@@ -121,6 +137,28 @@ ${insight}
 );
 
     console.log("DM sent!");
+}
+
+if (telegramId) {
+  await telegramBot.sendMessage(
+    telegramId,
+`🚨 XENON ALPHA PRO SIGNAL
+
+━━━━━━━━━━━━━━
+📊 Pair: ${pair}
+📌 Signal: ${signal}
+
+🤖 Ally Insight
+${insight}
+
+⚠️ Risk Reminder: Use proper position sizing.
+
+⚡ Powered by Ally`
+  );
+
+  console.log("Telegram message sent!");
+}
+
   } catch (err) {
     console.error("Error sending DM:", err);
   }
