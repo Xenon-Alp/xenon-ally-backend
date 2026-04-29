@@ -92,19 +92,21 @@ app.post("/webhook", async (req, res) => {
   try {
     let currentPrice = "N/A";
     let priceChange = "N/A";
+    let marketTrend = "N/A";
+let volumeStatus = "N/A";
 
     try {
-      const marketData = await axios.get(
+     const marketData = await axios.get(
         `https://api.binance.com/api/v3/ticker/24hr?symbol=${cleanPair}`
       );
 
       currentPrice = marketData.data.lastPrice;
       priceChange = marketData.data.priceChangePercent;
       const volume = marketData.data.volume;
-      const marketTrend =
+     marketTrend =
   priceChange >= 0 ? "Bullish 📈" : "Bearish 📉";
 
-const volumeStatus =
+volumeStatus =
   volume > 1000000 ? "High 🔥" : "Normal ✅";
     } catch (err) {
       console.log("Binance data not available for:", cleanPair);
