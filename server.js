@@ -107,10 +107,13 @@ if (!discordId && !telegramId) {
   return res.json({ message: "No connected account found" });
 }
 
+const directionEmoji = signal === "BUY" ? "🟢" : "🔴";
+const signalTitle = signal === "BUY" ? "BUY SIGNAL" : "SELL SIGNAL";
+
 const insight =
   signal === "BUY"
-    ? "Market showing bullish momentum. Potential upward move, watch for confirmation."
-    : "Market showing bearish pressure. Possible downside move, wait for proper entry.";
+    ? "Bullish momentum detected. Watch for confirmation and manage risk before entry."
+    : "Bearish pressure detected. Wait for confirmation and manage risk before entry.";
 
 if (discordId) {
   const targetUser = await client.users.fetch(discordId);
@@ -122,7 +125,7 @@ await targetUser.send(
 
 ━━━━━━━━━━━━━━
 📊 **Pair:** ${pair}
-📌 **Signal:** ${signal}
+${directionEmoji} **${signalTitle}**
 
 🤖 **Ally Insight**
 ${insight}
@@ -142,7 +145,7 @@ if (telegramId) {
 
 ━━━━━━━━━━━━━━
 📊 Pair: ${pair}
-📌 Signal: ${signal}
+${directionEmoji} ${signalTitle}
 
 🤖 Ally Insight
 ${insight}
