@@ -68,7 +68,7 @@ async function checkWhopSubscription(username) {
   );
 });
 
-    return !!userFound;
+    return userFound;
   } catch (err) {
     console.log("Whop error:", err.message);
     return false;
@@ -84,9 +84,11 @@ app.post("/webhook", async (req, res) => {
   try {
 const discordId = users[user];
 
-const isSubscribed = await checkWhopSubscription(user);
+const whopMember = await checkWhopSubscription(user);
 
-if (!isSubscribed) {
+console.log(JSON.stringify(whopMember, null, 2));
+
+if (!whopMember) {
   console.log("❌ Not subscribed (Whop):", user);
   return res.json({ message: "User not subscribed" });
 }
