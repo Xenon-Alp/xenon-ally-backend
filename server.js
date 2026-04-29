@@ -134,11 +134,13 @@ volumeStatus =
 
 if (signal === "BUY") {
   if (marketTrend.includes("Bullish") && volumeStatus.includes("High")) {
-    insight =
-      "Strong bullish momentum detected with high market participation. Buyers currently in control.";
+
+      insight =
+  `${pair} is currently showing strong bullish momentum with elevated trading activity. Market conditions are favoring buyers, but confirmation before entry is still recommended.`;
   } else if (marketTrend.includes("Bullish")) {
+    
     insight =
-      "Bullish conditions detected. Wait for confirmation before entering aggressively.";
+  `${pair} is maintaining bullish market conditions with moderate activity levels. Momentum remains positive, but waiting for confirmation could reduce risk.`;
   } else {
     insight =
       "Mixed market conditions detected. Manage risk carefully before entering.";
@@ -147,11 +149,11 @@ if (signal === "BUY") {
 
 if (signal === "SELL") {
   if (marketTrend.includes("Bearish") && volumeStatus.includes("High")) {
-    insight =
-      "Strong bearish pressure detected with elevated selling activity.";
+   insight =
+  `${pair} is currently under strong bearish pressure with elevated selling activity. Sellers remain in control, so confirmation and proper risk management are important before entry.`;
   } else if (marketTrend.includes("Bearish")) {
-    insight =
-      "Bearish conditions detected. Watch for continuation confirmation.";
+insight =
+  `${pair} continues to show bearish market conditions with moderate momentum. Waiting for continuation confirmation may help avoid weak entries.`;
   } else {
     insight =
       "Market structure appears mixed. Trade cautiously and manage exposure.";
