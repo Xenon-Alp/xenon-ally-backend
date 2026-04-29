@@ -50,11 +50,11 @@ async function checkWhopSubscription(username) {
       },
     });
 
-    console.log(res.data);
+   
 
     const memberships = res.data.data;
 
-    console.log(JSON.stringify(memberships[0], null, 2));
+    
 
   const userFound = memberships.find((m) => {
   if (m.status !== "active") return false;
@@ -86,7 +86,7 @@ const whopMember = await checkWhopSubscription(user);
 
 const discordId = whopMember?.discord?.id;
 
-console.log(JSON.stringify(whopMember, null, 2));
+
 
 if (!whopMember) {
   console.log("❌ Not subscribed (Whop):", user);
