@@ -100,6 +100,7 @@ const whopMember = await checkWhopSubscription(user);
 
 const discordId = whopMember?.discord?.id;
 const telegramId = whopMember?.telegram_account_id;
+console.log("Telegram ID:", telegramId);
 
 
 
