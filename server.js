@@ -89,48 +89,48 @@ app.post("/webhook", async (req, res) => {
   const { user, pair, signal } = req.body;
   const cleanPair = pair.replace(".P", "");
 
-
   try {
+    let currentPrice = "N/A";
+    let priceChange = "N/A";
 
-     const marketData = await axios.get(
-  `https://api.binance.com/api/v3/ticker/24hr?symbol=${cleanPair}`
-);
+    try {
+      const marketData = await axios.get(
+        `https://api.binance.com/api/v3/ticker/24hr?symbol=${cleanPair}`
+      );
 
-const currentPrice = marketData.data.lastPrice;
-const priceChange = marketData.data.priceChangePercent;
+      currentPrice = marketData.data.lastPrice;
+      priceChange = marketData.data.priceChangePercent;
+    } catch (err) {
+      console.log("Binance data not available for:", cleanPair);
+    }
 
-const whopMember = await checkWhopSubscription(user);
+    const whopMember = await checkWhopSubscription(user);
 
-const discordId = whopMember?.discord?.id;
-const telegramId = whopMember?.telegram_account_id;
-console.log("Telegram ID:", telegramId);
+    if (!whopMember) {
+      console.log("❌ Not subscribed (Whop):", user);
+      return res.json({ message: "User not subscribed" });
+    }
 
+    const discordId = whopMember?.discord?.id;
+    const telegramId = whopMember?.telegram_account_id;
 
+    if (!discordId && !telegramId) {
+      console.log("❌ No Discord or Telegram connected:", user);
+      return res.json({ message: "No connected account found" });
+    }
 
-if (!whopMember) {
-  console.log("❌ Not subscribed (Whop):", user);
-  return res.json({ message: "User not subscribed" });
-}
+    const directionEmoji = signal === "BUY" ? "🟢" : "🔴";
+    const signalTitle = signal === "BUY" ? "BUY SIGNAL" : "SELL SIGNAL";
 
-if (!discordId && !telegramId) {
-  console.log("❌ No Discord or Telegram connected:", user);
-  return res.json({ message: "No connected account found" });
-}
+    const insight =
+      signal === "BUY"
+        ? "Bullish momentum detected. Watch for confirmation and manage risk before entry."
+        : "Bearish pressure detected. Wait for confirmation and manage risk before entry.";
 
-const directionEmoji = signal === "BUY" ? "🟢" : "🔴";
-const signalTitle = signal === "BUY" ? "BUY SIGNAL" : "SELL SIGNAL";
+    if (discordId) {
+      const targetUser = await client.users.fetch(discordId);
 
-const insight =
-  signal === "BUY"
-    ? "Bullish momentum detected. Watch for confirmation and manage risk before entry."
-    : "Bearish pressure detected. Wait for confirmation and manage risk before entry.";
-
-if (discordId) {
-  const targetUser = await client.users.fetch(discordId);
-
-
-
-await targetUser.send(
+      await targetUser.send(
 `🚨 **XENON ALPHA PRO SIGNAL**
 
 ━━━━━━━━━━━━━━
@@ -145,14 +145,14 @@ ${insight}
 ⚠️ **Risk Reminder:** Use proper position sizing.
 
 ⚡ Powered by **Ally**`
-);
+      );
 
-    console.log("DM sent!");
-}
+      console.log("Discord DM sent!");
+    }
 
-if (telegramId) {
-  await telegramBot.sendMessage(
-    telegramId,
+    if (telegramId) {
+      await telegramBot.sendMessage(
+        telegramId,
 `🚨 XENON ALPHA PRO SIGNAL
 
 ━━━━━━━━━━━━━━
@@ -167,18 +167,18 @@ ${insight}
 ⚠️ Risk Reminder: Use proper position sizing.
 
 ⚡ Powered by Ally`
-  );
+      );
 
-  console.log("Telegram message sent!");
-}
+      console.log("Telegram message sent!");
+    }
 
+    res.json({
+      message: "Webhook received successfully",
+    });
   } catch (err) {
-    console.error("Error sending DM:", err);
+    console.error("Error processing webhook:", err);
+    res.json({ message: "Webhook error" });
   }
-
-  res.json({
-    message: "Webhook received successfully",
-  });
 });
 
 app.listen(PORT, () => {
