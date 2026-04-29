@@ -82,9 +82,9 @@ app.post("/webhook", async (req, res) => {
   const { user, pair, signal } = req.body;
 
   try {
-const discordId = users[user];
-
 const whopMember = await checkWhopSubscription(user);
+
+const discordId = whopMember?.discord?.id;
 
 console.log(JSON.stringify(whopMember, null, 2));
 
@@ -94,8 +94,8 @@ if (!whopMember) {
 }
 
 if (!discordId) {
-  console.log("❌ Unlinked user:", user);
-  return res.json({ message: "User not linked" });
+  console.log("❌ No Discord connected in Whop:", user);
+  return res.json({ message: "Discord account not found in Whop" });
 }
 
 const targetUser = await client.users.fetch(discordId);
