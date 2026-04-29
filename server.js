@@ -87,7 +87,7 @@ app.post("/webhook", async (req, res) => {
   console.log(req.body);
 
   const { user, pair, signal } = req.body;
-  const cleanPair = pair.replace(".P", "");
+const cleanPair = pair.replace(".P", "").trim();
 
   try {
     let currentPrice = "N/A";
