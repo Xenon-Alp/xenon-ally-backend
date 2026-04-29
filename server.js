@@ -130,10 +130,33 @@ volumeStatus =
     const directionEmoji = signal === "BUY" ? "🟢" : "🔴";
     const signalTitle = signal === "BUY" ? "BUY SIGNAL" : "SELL SIGNAL";
 
-    const insight =
-      signal === "BUY"
-        ? "Bullish momentum detected. Watch for confirmation and manage risk before entry."
-        : "Bearish pressure detected. Wait for confirmation and manage risk before entry.";
+  let insight = "";
+
+if (signal === "BUY") {
+  if (marketTrend.includes("Bullish") && volumeStatus.includes("High")) {
+    insight =
+      "Strong bullish momentum detected with high market participation. Buyers currently in control.";
+  } else if (marketTrend.includes("Bullish")) {
+    insight =
+      "Bullish conditions detected. Wait for confirmation before entering aggressively.";
+  } else {
+    insight =
+      "Mixed market conditions detected. Manage risk carefully before entering.";
+  }
+}
+
+if (signal === "SELL") {
+  if (marketTrend.includes("Bearish") && volumeStatus.includes("High")) {
+    insight =
+      "Strong bearish pressure detected with elevated selling activity.";
+  } else if (marketTrend.includes("Bearish")) {
+    insight =
+      "Bearish conditions detected. Watch for continuation confirmation.";
+  } else {
+    insight =
+      "Market structure appears mixed. Trade cautiously and manage exposure.";
+  }
+}
 
     if (discordId) {
       const targetUser = await client.users.fetch(discordId);
