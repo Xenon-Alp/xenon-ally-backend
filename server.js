@@ -100,6 +100,12 @@ app.post("/webhook", async (req, res) => {
 
       currentPrice = marketData.data.lastPrice;
       priceChange = marketData.data.priceChangePercent;
+      const volume = marketData.data.volume;
+      const marketTrend =
+  priceChange >= 0 ? "Bullish 📈" : "Bearish 📉";
+
+const volumeStatus =
+  volume > 1000000 ? "High 🔥" : "Normal ✅";
     } catch (err) {
       console.log("Binance data not available for:", cleanPair);
     }
@@ -137,6 +143,8 @@ app.post("/webhook", async (req, res) => {
 📊 **Pair:** ${pair}
 💰 **Price:** ${currentPrice}
 📈 **24h Change:** ${priceChange}%
+📊 **Trend:** ${marketTrend}
+🔥 **Volume:** ${volumeStatus}
 ${directionEmoji} **${signalTitle}**
 
 🤖 **Ally Insight**
@@ -159,6 +167,8 @@ ${insight}
 📊 Pair: ${pair}
 💰 Price: ${currentPrice}
 📈 24h Change: ${priceChange}%
+📊 Trend: ${marketTrend}
+🔥 Volume: ${volumeStatus}
 ${directionEmoji} ${signalTitle}
 
 🤖 Ally Insight
