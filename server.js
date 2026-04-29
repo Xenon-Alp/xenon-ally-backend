@@ -107,13 +107,15 @@ if (!discordId && !telegramId) {
   return res.json({ message: "No connected account found" });
 }
 
-if (discordId) {
-  const targetUser = await client.users.fetch(discordId);
-
 const insight =
   signal === "BUY"
     ? "Market showing bullish momentum. Potential upward move, watch for confirmation."
     : "Market showing bearish pressure. Possible downside move, wait for proper entry.";
+
+if (discordId) {
+  const targetUser = await client.users.fetch(discordId);
+
+
 
 await targetUser.send(
 `🚨 **XENON ALPHA PRO SIGNAL**
