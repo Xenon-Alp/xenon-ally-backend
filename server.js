@@ -87,8 +87,18 @@ app.post("/webhook", async (req, res) => {
   console.log(req.body);
 
   const { user, pair, signal } = req.body;
+  const cleanPair = pair.replace(".P", "");
+
 
   try {
+
+     const marketData = await axios.get(
+  `https://api.binance.com/api/v3/ticker/24hr?symbol=${cleanPair}`
+);
+
+const currentPrice = marketData.data.lastPrice;
+const priceChange = marketData.data.priceChangePercent;
+
 const whopMember = await checkWhopSubscription(user);
 
 const discordId = whopMember?.discord?.id;
@@ -125,6 +135,8 @@ await targetUser.send(
 
 ━━━━━━━━━━━━━━
 📊 **Pair:** ${pair}
+💰 **Price:** ${currentPrice}
+📈 **24h Change:** ${priceChange}%
 ${directionEmoji} **${signalTitle}**
 
 🤖 **Ally Insight**
@@ -145,6 +157,8 @@ if (telegramId) {
 
 ━━━━━━━━━━━━━━
 📊 Pair: ${pair}
+💰 Price: ${currentPrice}
+📈 24h Change: ${priceChange}%
 ${directionEmoji} ${signalTitle}
 
 🤖 Ally Insight
