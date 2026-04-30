@@ -88,6 +88,7 @@ app.post("/webhook", async (req, res) => {
 
   const { user, pair, signal } = req.body;
 const cleanPair = pair.replace(".P", "").trim();
+console.log("Clean pair for Binance:", cleanPair);
 
   try {
     let currentPrice = "N/A";
@@ -109,7 +110,7 @@ let volumeStatus = "N/A";
 volumeStatus =
   volume > 1000000 ? "High 🔥" : "Normal ✅";
     } catch (err) {
-      console.log("Binance data not available for:", cleanPair);
+     console.log("Binance data not available for:", cleanPair, err.response?.data || err.message);
     }
 
     const whopMember = await checkWhopSubscription(user);
