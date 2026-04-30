@@ -97,13 +97,15 @@ console.log("Clean pair for Binance:", cleanPair);
 let volumeStatus = "N/A";
 
     try {
-     const marketData = await axios.get(
-        `https://api.binance.com/api/v3/ticker/24hr?symbol=${cleanPair}`
-      );
+ const marketData = await axios.get(
+  `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${cleanPair}`
+);
 
-      currentPrice = marketData.data.lastPrice;
-      priceChange = marketData.data.priceChangePercent;
-      const volume = marketData.data.volume;
+const ticker = marketData.data.result.list[0];
+
+currentPrice = ticker.lastPrice;
+priceChange = ticker.price24hPcnt;
+const volume = ticker.volume24h;
      marketTrend =
   priceChange >= 0 ? "Bullish 📈" : "Bearish 📉";
 
