@@ -98,21 +98,24 @@ let volumeStatus = "N/A";
 
     try {
  const marketData = await axios.get(
-  `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${cleanPair}`
+ `https://www.okx.com/api/v5/market/ticker?instId=${cleanPair.replace("USDT", "")}-USDT-SWAP`
 );
 
-const ticker = marketData.data.result.list[0];
+const ticker = marketData.data.data[0];
 
-currentPrice = ticker.lastPrice;
-priceChange = ticker.price24hPcnt;
-const volume = ticker.volume24h;
+currentPrice = ticker.last;
+const open24h = Number(ticker.open24h);
+const last = Number(ticker.last);
+
+priceChange = (((last - open24h) / open24h) * 100).toFixed(2);
+const volume = Number(ticker.vol24h);
      marketTrend =
   priceChange >= 0 ? "Bullish 📈" : "Bearish 📉";
 
 volumeStatus =
   volume > 1000000 ? "High 🔥" : "Normal ✅";
     } catch (err) {
-     console.log("Binance data not available for:", cleanPair, err.response?.data || err.message);
+     console.log("Market data not available for:", cleanPair, err.response?.data || err.message);
     }
 
     const whopMember = await checkWhopSubscription(user);
