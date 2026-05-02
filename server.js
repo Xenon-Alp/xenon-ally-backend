@@ -151,15 +151,7 @@ volumeStatus =
   insight =
     `${pair} has moved in favor of the trade. Consider moving stop loss to break-even to secure the position while allowing further upside potential.`;
 }
-  const tradeSetupText =
-  signal === "BE"
-    ? ""
-    : `
-
-🎯 TP1: ${tp1 || "N/A"}
-🎯 TP2: ${tp2 || "N/A"}
-🛑 SL: ${sl || "N/A"}`;
-
+ 
 if (signal === "BUY") {
   if (marketTrend.includes("Bullish") && volumeStatus.includes("High")) {
 
@@ -205,7 +197,6 @@ ${directionEmoji} **${signalTitle}**
 🤖 **Ally Insight**
 ${insight}
 
-${tradeSetupText}
 
 ⚠️ **Risk Reminder:** Use proper position sizing.
 
@@ -231,7 +222,6 @@ ${directionEmoji} ${signalTitle}
 🤖 Ally Insight
 ${insight}
 
-${tradeSetupText}
 
 ⚠️ Risk Reminder: Use proper position sizing.
 
