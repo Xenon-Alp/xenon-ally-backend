@@ -133,10 +133,24 @@ volumeStatus =
       return res.json({ message: "No connected account found" });
     }
 
-    const directionEmoji = signal === "BUY" ? "🟢" : "🔴";
-    const signalTitle = signal === "BUY" ? "BUY SIGNAL" : "SELL SIGNAL";
+   const directionEmoji =
+  signal === "BUY"
+    ? "🟢"
+    : signal === "SELL"
+    ? "🔴"
+    : "🛡️";
+   const signalTitle =
+  signal === "BUY"
+    ? "BUY SIGNAL"
+    : signal === "SELL"
+    ? "SELL SIGNAL"
+    : "BREAK EVEN ALERT";
 
   let insight = "";
+  if (signal === "BE") {
+  insight =
+    `${pair} has moved in favor of the trade. Consider moving stop loss to break-even to secure the position while allowing further upside potential.`;
+}
   const tradeSetupText =
   signal === "BE"
     ? ""
