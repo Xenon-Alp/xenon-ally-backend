@@ -86,7 +86,7 @@ app.post("/webhook", async (req, res) => {
   console.log("Signal received:");
   console.log(req.body);
 
-  const { user, pair, signal } = req.body;
+const { user, pair, signal, entry, tp1, tp2, sl } = req.body;
 const cleanPair = pair.replace(".P", "").trim();
 console.log("Clean pair for Binance:", cleanPair);
 
@@ -137,6 +137,14 @@ volumeStatus =
     const signalTitle = signal === "BUY" ? "BUY SIGNAL" : "SELL SIGNAL";
 
   let insight = "";
+  const tradeSetupText =
+  signal === "BE"
+    ? ""
+    : `
+
+🎯 TP1: ${tp1 || "N/A"}
+🎯 TP2: ${tp2 || "N/A"}
+🛑 SL: ${sl || "N/A"}`;
 
 if (signal === "BUY") {
   if (marketTrend.includes("Bullish") && volumeStatus.includes("High")) {
@@ -183,6 +191,8 @@ ${directionEmoji} **${signalTitle}**
 🤖 **Ally Insight**
 ${insight}
 
+${tradeSetupText}
+
 ⚠️ **Risk Reminder:** Use proper position sizing.
 
 ⚡ Powered by **Ally**`
@@ -206,6 +216,8 @@ ${directionEmoji} ${signalTitle}
 
 🤖 Ally Insight
 ${insight}
+
+${tradeSetupText}
 
 ⚠️ Risk Reminder: Use proper position sizing.
 
