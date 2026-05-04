@@ -86,7 +86,17 @@ app.post("/webhook", async (req, res) => {
   console.log("Signal received:");
   console.log(req.body);
 
-const { user, pair, signal, entry, tp1, tp2, sl } = req.body;
+const { user, pair, signal, entry, tp1, tp2, sl, be } = req.body;
+
+const tradeLevels =
+  signal === "BUY" || signal === "SELL"
+    ? `
+🎯 **Entry:** ${entry || "N/A"}
+🛑 **Stop Loss:** ${sl || "N/A"}
+✅ **TP1:** ${tp1 || "N/A"}
+✅ **TP2:** ${tp2 || "N/A"}
+🛡️ **BE Trigger:** ${be || "N/A"}`
+    : "";
 const cleanPair = pair.replace(".P", "").trim();
 console.log("Clean pair for Binance:", cleanPair);
 
@@ -193,6 +203,7 @@ insight =
 📊 **Trend:** ${marketTrend}
 🔥 **Volume:** ${volumeStatus}
 ${directionEmoji} **${signalTitle}**
+${tradeLevels}
 
 🤖 **Ally Insight**
 ${insight}
@@ -218,6 +229,7 @@ ${insight}
 📊 Trend: ${marketTrend}
 🔥 Volume: ${volumeStatus}
 ${directionEmoji} ${signalTitle}
+${tradeLevels}
 
 🤖 Ally Insight
 ${insight}
