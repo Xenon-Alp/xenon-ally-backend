@@ -17,10 +17,18 @@ const { Client, GatewayIntentBits } = require("discord.js");
 const express = require("express");
 const axios = require("axios");
 const TelegramBot = require("node-telegram-bot-api");
+const nodemailer = require("nodemailer");
 console.log("Whop key loaded:", process.env.WHOP_API_KEY ? "YES" : "NO");
 
 const app = express();
 const PORT = 3000;
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 const client = new Client({
 intents: [
@@ -33,6 +41,13 @@ intents: [
 
 const telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
   polling: false,
+});
+transporter.verify(function (error, success) {
+  if (error) {
+    console.log("Email error:", error);
+  } else {
+    console.log("Email server is ready");
+  }
 });
 
 
