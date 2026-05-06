@@ -248,7 +248,7 @@ console.log("Trying email:", whopMember.email);
   });
 
   console.log("Email sent!");
-}else {
+} else {
   console.log("Email skipped: no whopMember.email field");
 }
 
