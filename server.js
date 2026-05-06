@@ -23,7 +23,9 @@ console.log("Whop key loaded:", process.env.WHOP_API_KEY ? "YES" : "NO");
 const app = express();
 const PORT = 3000;
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
