@@ -110,8 +110,9 @@ console.log("Clean pair for Binance:", cleanPair);
 let volumeStatus = "N/A";
 
     try {
- const marketData = await axios.get(
- `https://www.okx.com/api/v5/market/ticker?instId=${cleanPair.replace("USDT", "")}-USDT-SWAP`
+const marketData = await axios.get(
+  `https://www.okx.com/api/v5/market/ticker?instId=${cleanPair.replace("USDT", "")}-USDT-SWAP`,
+  { timeout: 8000 }
 );
 
 const ticker = marketData.data.data[0];
