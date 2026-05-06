@@ -42,10 +42,6 @@ const telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
 });
 
 
-
-
-
-
 const activeSubscriptions = {
   "testuser": true
 };
@@ -224,6 +220,10 @@ ${insight}
       console.log("Discord DM sent!");
     }
 
+    console.log("Whop member keys:", Object.keys(whopMember));
+console.log("Whop member full:", JSON.stringify(whopMember, null, 2));
+console.log("Trying email:", whopMember.email);
+
     if (whopMember.email) {
   await resend.emails.send({
     from: "Xenon Ally <onboarding@resend.dev>",
@@ -248,6 +248,8 @@ ${insight}
   });
 
   console.log("Email sent!");
+}else {
+  console.log("Email skipped: no whopMember.email field");
 }
 
     if (telegramId) {
