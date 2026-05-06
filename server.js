@@ -227,7 +227,7 @@ console.log("Trying email:", whopMember.email);
 
     if (whopMember.email) {
   await resend.emails.send({
-    from: "Xenon Ally <onboarding@resend.dev>",
+   from: "Xenon Ally <ally@xenonalpha.com>",
     to: whopMember.email,
     subject: `Xenon Alpha Pro ${signalTitle}`,
     html: `
