@@ -4,7 +4,7 @@ module.exports = {
   FREE_LAUNCH_ENABLED: true,
 
   FREE_PRODUCT_IDS: [
-    "prod_hv0Wb7cFzOlLi"
+    "prod_ZhvoPAaTrzGmS"
   ],
 
   PAID_PRODUCT_IDS: [
