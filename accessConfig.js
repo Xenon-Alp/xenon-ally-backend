@@ -11,5 +11,5 @@ module.exports = {
     "prod_Fiq3qSrFMzmQa"
   ],
 
-  FREE_ALLOWED_STATUSES: ["active", "trialing"]
+  FREE_ALLOWED_STATUSES: ["active", "trialing", "completed"]
 };
