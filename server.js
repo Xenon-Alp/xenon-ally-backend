@@ -78,8 +78,8 @@ async function checkWhopSubscription(username) {
 
       if (!hasMatchingUsername) return false;
 
-    const productId =
-  m.product?.id ||
+const productId =
+  m.product ||
   m.plan?.product_id ||
   m.product_id;
 
