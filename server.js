@@ -13,6 +13,8 @@ try {
 
 require("dotenv").config();
 
+const accessConfig = require("./accessConfig");
+
 const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -54,29 +56,46 @@ app.get("/", (req, res) => {
 
 async function checkWhopSubscription(username) {
   try {
-    const res = await axios.get("https://api.whop.com/api/v2/memberships", {
-      headers: {
-        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
-      },
-    });
-
-   
+    const res = await axios.get(
+      "https://api.whop.com/api/v2/memberships",
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
+        },
+      }
+    );
 
     const memberships = res.data.data;
 
-    
+    const userFound = memberships.find((m) => {
+      const answers = m.custom_field_responses || [];
 
-  const userFound = memberships.find((m) => {
-  if (m.status !== "active") return false;
+      const hasMatchingUsername = answers.some(
+        (a) =>
+          a.question === "Enter your TradingView username" &&
+          a.answer === username
+      );
 
-  const answers = m.custom_field_responses || [];
+      if (!hasMatchingUsername) return false;
 
-  return answers.some(
-    (a) =>
-      a.question === "Enter your TradingView username" &&
-      a.answer === username
-  );
-});
+      const productId =
+        m.product?.id ||
+        m.plan?.product_id ||
+        m.product_id;
+
+      const status = m.status;
+
+      const isPaidAllowed =
+        accessConfig.PAID_PRODUCT_IDS.includes(productId) &&
+        accessConfig.PAID_ALLOWED_STATUSES.includes(status);
+
+      const isFreeLaunchAllowed =
+        accessConfig.FREE_LAUNCH_ENABLED &&
+        accessConfig.FREE_PRODUCT_IDS.includes(productId) &&
+        accessConfig.FREE_ALLOWED_STATUSES.includes(status);
+
+      return isPaidAllowed || isFreeLaunchAllowed;
+    });
 
     return userFound;
   } catch (err) {
