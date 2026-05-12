@@ -85,6 +85,16 @@ async function checkWhopSubscription(username) {
 
       const status = m.status;
 
+      console.log("Checking membership:", {
+  username,
+  whopStatus: m.status,
+  productId,
+  product: m.product,
+  plan: m.plan,
+  product_id: m.product_id,
+  customFields: m.custom_field_responses
+});
+
       const isPaidAllowed =
         accessConfig.PAID_PRODUCT_IDS.includes(productId) &&
         accessConfig.PAID_ALLOWED_STATUSES.includes(status);
