@@ -171,10 +171,10 @@ volumeStatus =
     const discordId = whopMember?.discord?.id;
     const telegramId = whopMember?.telegram_account_id;
 
-    if (!discordId && !telegramId) {
-      console.log("❌ No Discord or Telegram connected:", user);
-      return res.json({ message: "No connected account found" });
-    }
+if (!discordId && !telegramId && !whopMember.email) {
+  console.log("❌ No Discord, Telegram, or email connected:", user);
+  return res.json({ message: "No connected account found" });
+}
 
    const directionEmoji =
   signal === "BUY"
