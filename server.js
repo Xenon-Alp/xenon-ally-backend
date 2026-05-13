@@ -56,54 +56,53 @@ app.get("/", (req, res) => {
 
 async function checkWhopSubscription(username) {
   try {
-    const res = await axios.get(
-      "https://api.whop.com/api/v2/memberships",
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
-        },
-      }
-    );
+    const res = await axios.get("https://api.whop.com/api/v2/memberships", {
+      headers: {
+        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
+      },
+    });
 
     const memberships = res.data.data;
+    const signalUsername = String(username || "").trim().toLowerCase();
 
     const userFound = memberships.find((m) => {
       const answers = m.custom_field_responses || [];
 
-      const hasMatchingUsername = answers.some(
-        (a) =>
-          a.question === "Enter your TradingView username" &&
-          a.answer === username
-      );
+      console.log("Whop username check:", {
+        signalUsername,
+        whopStatus: m.status,
+        product: m.product,
+        answers
+      });
+
+      const hasMatchingUsername = answers.some((a) => {
+        const question = String(a.question || "").trim().toLowerCase();
+        const answer = String(a.answer || "").trim().toLowerCase();
+
+        return (
+          question.includes("tradingview") &&
+          answer === signalUsername
+        );
+      });
 
       if (!hasMatchingUsername) return false;
 
-const productId =
-  m.product ||
-  m.plan?.product_id ||
-  m.product_id;
+      const productId =
+        m.product ||
+        m.plan?.product_id ||
+        m.product_id;
 
       const status = m.status;
 
       console.log("Checking membership:", {
-  username,
-  whopStatus: m.status,
-  productId,
-  product: m.product,
-  plan: m.plan,
-  product_id: m.product_id,
-  customFields: m.custom_field_responses
-});
-
-      console.log("Checking membership:", {
-  username,
-  whopStatus: m.status,
-  productId,
-  product: m.product,
-  plan: m.plan,
-  product_id: m.product_id,
-  customFields: m.custom_field_responses
-});
+        username,
+        whopStatus: status,
+        productId,
+        product: m.product,
+        plan: m.plan,
+        product_id: m.product_id,
+        customFields: answers
+      });
 
       const isPaidAllowed =
         accessConfig.PAID_PRODUCT_IDS.includes(productId) &&
