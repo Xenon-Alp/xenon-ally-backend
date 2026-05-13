@@ -84,7 +84,6 @@ while (hasMore) {
 
     // 1) Find the Whop customer/user that has this TradingView username
     const tvOwner = memberships.find((m) => {
-      console.log(JSON.stringify(m, null, 2));
       const answers = m.custom_field_responses || [];
 
       return answers.some((a) => {
@@ -109,10 +108,11 @@ while (hasMore) {
 
     // 2) Find any valid active/free membership for that same user
     const validMembership = memberships.find((m) => {
-      const sameUser =
-        (ownerEmail && m.email === ownerEmail) ||
-        (ownerDiscordId && m.discord?.id === ownerDiscordId) ||
-        (ownerTelegramId && m.telegram_account_id === ownerTelegramId);
+    const sameUser =
+  (ownerEmail && m.email === ownerEmail) ||
+  (ownerDiscordId && m.discord?.id === ownerDiscordId) ||
+  (ownerTelegramId && m.telegram_account_id === ownerTelegramId) ||
+  (tvOwner.user && m.user === tvOwner.user);
 
       if (!sameUser) return false;
 
@@ -140,7 +140,24 @@ while (hasMore) {
       return false;
     }
 
-    return validMembership;
+    const connectedData = memberships.find((m) => {
+  return (
+    (ownerEmail && m.email === ownerEmail) ||
+    (ownerDiscordId && m.discord?.id === ownerDiscordId) ||
+    (ownerTelegramId && m.telegram_account_id === ownerTelegramId) ||
+    (tvOwner.user && m.user === tvOwner.user)
+  );
+});
+
+return {
+  ...validMembership,
+  email: validMembership.email || connectedData?.email || tvOwner.email,
+  discord: validMembership.discord || connectedData?.discord || tvOwner.discord,
+  telegram_account_id:
+    validMembership.telegram_account_id ||
+    connectedData?.telegram_account_id ||
+    tvOwner.telegram_account_id,
+};
   } catch (err) {
     console.log("Whop error:", err.message);
     return false;
