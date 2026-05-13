@@ -56,12 +56,26 @@ app.get("/", (req, res) => {
 
 async function checkWhopSubscription(username) {
   try {
-    const res = await axios.get("https://api.whop.com/api/v2/memberships", {
-      headers: {
-        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
-      },
-    });
+    let memberships = [];
+let page = 1;
+let hasMore = true;
 
+while (hasMore) {
+  const res = await axios.get("https://api.whop.com/api/v2/memberships", {
+    headers: {
+      Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
+    },
+    params: {
+      page,
+      per: 100,
+    },
+  });
+
+  memberships = memberships.concat(res.data.data || []);
+
+  hasMore = (res.data.data || []).length === 100;
+  page++;
+}
     const memberships = res.data.data;
    const signalUsername = String(username || "")
   .trim()
