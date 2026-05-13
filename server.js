@@ -70,6 +70,7 @@ async function checkWhopSubscription(username) {
 
     // 1) Find the Whop customer/user that has this TradingView username
     const tvOwner = memberships.find((m) => {
+      console.log(JSON.stringify(m, null, 2));
       const answers = m.custom_field_responses || [];
 
       return answers.some((a) => {
