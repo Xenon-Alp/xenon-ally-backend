@@ -76,7 +76,7 @@ while (hasMore) {
   hasMore = (res.data.data || []).length === 100;
   page++;
 }
-    const memberships = res.data.data;
+  
    const signalUsername = String(username || "")
   .trim()
   .replace(/\s+/g, "")
