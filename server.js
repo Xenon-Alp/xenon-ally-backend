@@ -179,6 +179,15 @@ const tradeLevels =
 ✅ **TP2:** ${tp2 || "N/A"}
 🛡️ **BE Trigger:** ${be || "N/A"}`
     : "";
+    const telegramTradeLevels =
+  signal === "BUY" || signal === "SELL"
+    ? `
+🎯 Entry: ${entry || "N/A"}
+🛑 Stop Loss: ${sl || "N/A"}
+✅ TP1: ${tp1 || "N/A"}
+✅ TP2: ${tp2 || "N/A"}
+🛡️ BE Trigger: ${be || "N/A"}`
+    : "";
 const cleanPair = pair.replace(".P", "").trim();
 console.log("Clean pair for Binance:", cleanPair);
 
@@ -344,7 +353,7 @@ console.log("Trying email:", whopMember.email);
 📊 Trend: ${marketTrend}
 🔥 Volume: ${volumeStatus}
 ${directionEmoji} ${signalTitle}
-${tradeLevels}
+${telegramTradeLevels}
 
 🤖 Ally Insight
 ${insight}
