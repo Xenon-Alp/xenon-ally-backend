@@ -65,29 +65,35 @@ async function checkWhopSubscription(username) {
     const memberships = res.data.data;
     const signalUsername = String(username || "").trim().toLowerCase();
 
-    const userFound = memberships.find((m) => {
+    // 1) Find the Whop customer/user that has this TradingView username
+    const tvOwner = memberships.find((m) => {
       const answers = m.custom_field_responses || [];
 
-      if (m.status === "canceled") return false;
-
-      console.log("Whop username check:", {
-        signalUsername,
-        whopStatus: m.status,
-        product: m.product,
-        answers
-      });
-
-      const hasMatchingUsername = answers.some((a) => {
+      return answers.some((a) => {
         const question = String(a.question || "").trim().toLowerCase();
         const answer = String(a.answer || "").trim().toLowerCase();
 
-        return (
-          question.includes("tradingview") &&
-          answer === signalUsername
-        );
+        return question.includes("tradingview") && answer === signalUsername;
       });
+    });
 
-      if (!hasMatchingUsername) return false;
+    if (!tvOwner) {
+      console.log("❌ No Whop user found with TV username:", username);
+      return false;
+    }
+
+    const ownerEmail = tvOwner.email;
+    const ownerDiscordId = tvOwner.discord?.id;
+    const ownerTelegramId = tvOwner.telegram_account_id;
+
+    // 2) Find any valid active/free membership for that same user
+    const validMembership = memberships.find((m) => {
+      const sameUser =
+        (ownerEmail && m.email === ownerEmail) ||
+        (ownerDiscordId && m.discord?.id === ownerDiscordId) ||
+        (ownerTelegramId && m.telegram_account_id === ownerTelegramId);
+
+      if (!sameUser) return false;
 
       const productId =
         m.product ||
@@ -95,16 +101,6 @@ async function checkWhopSubscription(username) {
         m.product_id;
 
       const status = m.status;
-
-      console.log("Checking membership:", {
-        username,
-        whopStatus: status,
-        productId,
-        product: m.product,
-        plan: m.plan,
-        product_id: m.product_id,
-        customFields: answers
-      });
 
       const isPaidAllowed =
         accessConfig.PAID_PRODUCT_IDS.includes(productId) &&
@@ -118,7 +114,12 @@ async function checkWhopSubscription(username) {
       return isPaidAllowed || isFreeLaunchAllowed;
     });
 
-    return userFound;
+    if (!validMembership) {
+      console.log("❌ TV username found, but no valid active membership:", username);
+      return false;
+    }
+
+    return validMembership;
   } catch (err) {
     console.log("Whop error:", err.message);
     return false;
