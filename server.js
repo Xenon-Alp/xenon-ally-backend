@@ -63,7 +63,10 @@ async function checkWhopSubscription(username) {
     });
 
     const memberships = res.data.data;
-    const signalUsername = String(username || "").trim().toLowerCase();
+   const signalUsername = String(username || "")
+  .trim()
+  .replace(/\s+/g, "")
+  .toLowerCase();
 
     // 1) Find the Whop customer/user that has this TradingView username
     const tvOwner = memberships.find((m) => {
@@ -71,7 +74,10 @@ async function checkWhopSubscription(username) {
 
       return answers.some((a) => {
         const question = String(a.question || "").trim().toLowerCase();
-        const answer = String(a.answer || "").trim().toLowerCase();
+        const answer = String(a.answer || "")
+  .trim()
+  .replace(/\s+/g, "")
+  .toLowerCase();
 
         return question.includes("tradingview") && answer === signalUsername;
       });
