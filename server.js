@@ -68,6 +68,8 @@ async function checkWhopSubscription(username) {
     const userFound = memberships.find((m) => {
       const answers = m.custom_field_responses || [];
 
+      if (m.status === "canceled") return false;
+
       console.log("Whop username check:", {
         signalUsername,
         whopStatus: m.status,
