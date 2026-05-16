@@ -25,34 +25,22 @@ function checkRateLimit(key) {
   return { allowed: true, remaining: 5 - userData.count };
 }
 
-async function isActiveSubscriber(telegramId) {
+async function isActiveSubscriber(id, platform = "telegram") {
   try {
     const res = await axios.get("https://api.whop.com/api/v2/memberships", {
       headers: { Authorization: `Bearer ${process.env.WHOP_API_KEY}` },
       params: { page: 1, per: 100 },
     });
     const memberships = res.data.data || [];
-    return memberships.some(
-      (m) => String(m.telegram_account_id) === String(telegramId) && m.status === "active"
-    );
+    return memberships.some((m) => {
+      const match =
+        platform === "discord"
+          ? m.discord?.id === String(id)
+          : String(m.telegram_account_id) === String(id);
+      return match && m.status === "active";
+    });
   } catch (err) {
     console.error("Whop subscriber check failed:", err.message);
-    return false;
-  }
-}
-
-async function isActiveDiscordSubscriber(discordId) {
-  try {
-    const res = await axios.get("https://api.whop.com/api/v2/memberships", {
-      headers: { Authorization: `Bearer ${process.env.WHOP_API_KEY}` },
-      params: { page: 1, per: 100 },
-    });
-    const memberships = res.data.data || [];
-    return memberships.some(
-      (m) => m.discord?.id === String(discordId) && m.status === "active"
-    );
-  } catch (err) {
-    console.error("Whop Discord subscriber check failed:", err.message);
     return false;
   }
 }
@@ -278,7 +266,7 @@ telegramBot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const telegramId = msg.from.id;
 
-  const subscribed = await isActiveSubscriber(telegramId);
+  const subscribed = await isActiveSubscriber(telegramId, "telegram");
   if (!subscribed) {
     return telegramBot.sendMessage(
       chatId,
@@ -981,9 +969,9 @@ client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
   // Xenon Ally AI — Discord DMs only
-  if (message.channel.type === 1 && !message.content.startsWith("!")) {
-    const subscribed = await isActiveDiscordSubscriber(message.author.id);
-    if (!subscribed) {
+  if (message.channel.type === 1) {
+    const isSubscriber = await isActiveSubscriber(message.author.id, "discord");
+    if (!isSubscriber) {
       return message.reply("❌ Xenon Ally AI is available for active subscribers only. Get access at whop.com/xenon-alpha ⚡");
     }
 
@@ -994,12 +982,12 @@ client.on("messageCreate", async (message) => {
 
     try {
       await message.channel.sendTyping();
-      const reply = await getXenonAllyResponse(message.content);
-      await message.reply(`${reply}\n\n💬 ${rateCheck.remaining} messages remaining today`);
+      const aiResponse = await getXenonAllyResponse(message.content);
+      await message.reply(aiResponse + "\n\n💬 " + rateCheck.remaining + " messages remaining today");
       console.log("Xenon Ally AI replied on Discord to:", message.author.id);
     } catch (err) {
-      console.error("Xenon Ally Discord AI error:", err.message);
-      message.reply("Something went wrong. Please try again.");
+      console.error("Discord AI error:", err.message);
+      await message.reply("⚠️ Something went wrong. Please try again!");
     }
     return;
   }
