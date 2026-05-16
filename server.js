@@ -85,7 +85,7 @@ const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const { Client, GatewayIntentBits } = require("discord.js");
+const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const express = require("express");
 const axios = require("axios");
 const cron = require("node-cron");
@@ -103,14 +103,13 @@ const app = express();
 const PORT = 3000;
 
 
-const { Partials } = require("discord.js");
-
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.DirectMessageReactions,
     GatewayIntentBits.DirectMessageTyping,
   ],
   partials: [Partials.Channel, Partials.Message],
@@ -970,7 +969,7 @@ client.on("clientReady", () => {
 });
 
 client.on("messageCreate", async (message) => {
-  console.log("Discord message received:", message.channel.type, message.author?.username);
+  console.log("[Discord] Message received from:", message.author?.username, "Channel type:", message.channel.type);
   if (message.author.bot) return;
 
   // Xenon Ally AI — Discord DMs only
