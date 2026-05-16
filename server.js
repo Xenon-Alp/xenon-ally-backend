@@ -1135,26 +1135,20 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
   if (interaction.commandName !== "ask") return;
 
+  await interaction.deferReply({ flags: 64 });
+
   const question = interaction.options.getString("question");
   const userId = interaction.user.id;
 
   const isSubscriber = await isActiveSubscriber(userId, "discord");
   if (!isSubscriber) {
-    return interaction.reply({
-      content: "❌ Xenon Ally AI is available for active subscribers only. Get access at whop.com/xenon-alpha ⚡",
-      ephemeral: true,
-    });
+    return interaction.editReply("❌ Xenon Ally AI is available for active subscribers only. Get access at whop.com/xenon-alpha ⚡");
   }
 
   const rateCheck = checkRateLimit("discord_" + userId);
   if (!rateCheck.allowed) {
-    return interaction.reply({
-      content: "⏳ You have used all 5 daily messages. Resets tomorrow! 📈",
-      ephemeral: true,
-    });
+    return interaction.editReply("⏳ You have used all 5 daily messages. Resets tomorrow! 📈");
   }
-
-  await interaction.deferReply({ ephemeral: true });
 
   try {
     const aiResponse = await getXenonAllyResponse(question);
