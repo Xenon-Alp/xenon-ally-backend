@@ -39,14 +39,111 @@ intents: [
 ],
 });
 
+// Required env: TG_GROUP_ID — Telegram group chat ID used to generate one-time member invite links
 const telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-  polling: false,
+  polling: true,
 });
 
 
 const activeSubscriptions = {
   "testuser": true
 };
+
+async function findWhopMemberByTelegramId(telegramId) {
+  try {
+    let memberships = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const res = await axios.get("https://api.whop.com/api/v2/memberships", {
+        headers: {
+          Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
+        },
+        params: {
+          page,
+          per: 100,
+        },
+      });
+
+      memberships = memberships.concat(res.data.data || []);
+      hasMore = (res.data.data || []).length === 100;
+      page++;
+    }
+
+    return memberships.find(
+      (m) => String(m.telegram_account_id) === String(telegramId)
+    ) || null;
+  } catch (err) {
+    console.log("Whop error (Telegram lookup):", err.message);
+    return null;
+  }
+}
+
+telegramBot.onText(/\/start/, async (msg) => {
+  const chatId = msg.chat.id;
+  const telegramId = msg.from.id;
+
+  try {
+    const member = await findWhopMemberByTelegramId(telegramId);
+
+    if (!member) {
+      return telegramBot.sendMessage(
+        chatId,
+        "🚫 No access found. Get your plan here 👉 xenonalpha.com"
+      );
+    }
+
+    const productId = member.product || member.plan?.product_id || member.product_id;
+    const status = member.status;
+
+    const isPaidActive =
+      accessConfig.PAID_PRODUCT_IDS.includes(productId) &&
+      accessConfig.PAID_ALLOWED_STATUSES.includes(status);
+
+    const isFreeLaunchActive =
+      accessConfig.FREE_LAUNCH_ENABLED &&
+      accessConfig.FREE_PRODUCT_IDS.includes(productId) &&
+      accessConfig.FREE_ALLOWED_STATUSES.includes(status);
+
+    if (!isPaidActive && !isFreeLaunchActive) {
+      return telegramBot.sendMessage(
+        chatId,
+        "❌ Your subscription has expired. Renew here 👉 xenonalpha.com"
+      );
+    }
+
+    const invite = await telegramBot.createChatInviteLink(
+      process.env.TG_GROUP_ID,
+      { member_limit: 1 }
+    );
+
+    await telegramBot.sendMessage(
+      chatId,
+`✅ Access Confirmed — Welcome to Xenon Alpha!
+
+🤖 You're now connected to Xenon Ally.
+
+Join your exclusive member group here:
+${invite.invite_link}
+
+Inside you'll find:
+📢 Announcements
+🌅 Daily Market Brief
+🎯 Results
+🛠️ Setup Guide
+💬 Community
+🆘 Support
+
+⚡ Powered by Ally`
+    );
+
+    console.log("Telegram /start: access granted for", telegramId);
+  } catch (err) {
+    console.error("Telegram /start error:", err.message);
+    telegramBot.sendMessage(chatId, "Something went wrong. Please try again.");
+  }
+});
 
 app.use(express.json());
 
