@@ -1022,12 +1022,13 @@ client.on("clientReady", () => {
 
 client.on("messageCreate", async (message) => {
   try {
-    if (!message.author || message.author.bot) return;
-
-    // Force fetch if partial so author/content are populated
+    // Fetch partial first before any checks
     if (message.partial) {
       message = await message.fetch();
     }
+
+    // Now check author after fetch
+    if (!message.author || message.author.bot) return;
 
     const isDM = message.channel.type === 1 ||
                  message.channel.type === "DM" ||
