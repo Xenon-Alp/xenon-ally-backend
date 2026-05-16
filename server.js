@@ -1023,9 +1023,6 @@ app.listen(PORT, () => {
     .catch((err) => console.error("Failed to set Telegram webhook:", err.message));
 });
 
-client.on("clientReady", () => {
-  console.log(`Logged in as ${client.user.tag}`);
-});
 
 client.on("messageCreate", async (message) => {
   try {
@@ -1138,7 +1135,7 @@ client.on("channelCreate", (channel) => {
   console.log("[Discord] Channel created/cached:", channel.type, channel.id);
 });
 
-client.on("ready", () => {
-  console.log("Discord client ready, sweeping DM channels...");
-  client.channels.cache.sweep((c) => c.type === 1);
+client.once("clientReady", (c) => {
+  console.log(`✅ Discord logged in as ${c.user.tag}`);
+  c.channels.cache.sweep((ch) => ch.type === 1);
 });
