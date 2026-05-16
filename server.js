@@ -93,10 +93,9 @@ function getTradingViewUsername(membership) {
 }
 
 async function updateTradingViewAccess(tvUsername, action) {
-  const body = new URLSearchParams({
-    username: tvUsername,
-    script_id: process.env.TV_SCRIPT_ID,
-  });
+  const body = new URLSearchParams();
+  body.append("pine_id", process.env.TV_SCRIPT_ID);
+  body.append("username_recip", tvUsername);
 
   const res = await axios.post(
     `https://www.tradingview.com/pine_perm/${action}/`,
