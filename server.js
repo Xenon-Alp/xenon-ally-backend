@@ -114,6 +114,14 @@ async function updateTradingViewAccess(tvUsername, action) {
   return res.data;
 }
 
+async function addTVUser(tvUsername) {
+  return updateTradingViewAccess(tvUsername, "add");
+}
+
+async function removeTVUser(tvUsername) {
+  return updateTradingViewAccess(tvUsername, "remove");
+}
+
 telegramBot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const telegramId = msg.from.id;
@@ -593,6 +601,24 @@ app.post("/telegram-webhook", (req, res) => {
   console.log("Telegram update received:", JSON.stringify(req.body));
   telegramBot.processUpdate(req.body);
   res.sendStatus(200);
+});
+
+app.get("/test-tv-add/:username", async (req, res) => {
+  try {
+    const result = await addTVUser(req.params.username);
+    res.json({ success: true, result });
+  } catch (err) {
+    res.json({ success: false, error: err.response?.data || err.message });
+  }
+});
+
+app.get("/test-tv-remove/:username", async (req, res) => {
+  try {
+    const result = await removeTVUser(req.params.username);
+    res.json({ success: true, result });
+  } catch (err) {
+    res.json({ success: false, error: err.response?.data || err.message });
+  }
 });
 
 const RAILWAY_URL = "https://xenon-ally-backend-production.up.railway.app";
