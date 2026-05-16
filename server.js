@@ -109,10 +109,13 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.DirectMessageReactions,
-    GatewayIntentBits.DirectMessageTyping,
   ],
-  partials: [Partials.Channel, Partials.Message],
+  partials: [
+    Partials.Channel,
+    Partials.Message,
+    Partials.User,
+    Partials.GuildMember,
+  ],
 });
 
 // Required env: TG_GROUP_ID    — Telegram group chat ID for one-time member invite links
@@ -1126,6 +1129,10 @@ client.on("messageCreate", async (message) => {
 });
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
+client.on("channelCreate", (channel) => {
+  console.log("[Discord] Channel created/cached:", channel.type, channel.id);
+});
 
 client.on("ready", () => {
   console.log("Discord client ready, sweeping DM channels...");
