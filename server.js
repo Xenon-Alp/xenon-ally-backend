@@ -973,114 +973,112 @@ client.on("clientReady", () => {
 });
 
 client.on("messageCreate", async (message) => {
-  console.log("[Discord] Message received from:", message.author?.username, "Channel type:", message.channel.type);
+  try {
+    if (!message.author || message.author.bot) return;
 
-  // Fetch partial messages so author/content are populated
-  if (message.partial) {
-    try {
+    // Force fetch if partial so author/content are populated
+    if (message.partial) {
       message = await message.fetch();
-    } catch (err) {
-      console.error("Failed to fetch partial message:", err);
-      return;
-    }
-  }
-
-  if (!message.author || message.author.bot) return;
-
-  // Xenon Ally AI — Discord DMs only
-  if (message.channel.type === 1 || message.channel.type === "DM") {
-    const isSubscriber = await isActiveSubscriber(message.author.id, "discord");
-    if (!isSubscriber) {
-      return message.reply("❌ Xenon Ally AI is available for active subscribers only. Get access at whop.com/xenon-alpha ⚡");
     }
 
-    const rateCheck = checkRateLimit("discord_" + message.author.id);
-    if (!rateCheck.allowed) {
-      return message.reply("⏳ You've used all 5 daily messages across Telegram and Discord. Resets tomorrow! 📈");
-    }
+    const isDM = message.channel.type === 1 ||
+                 message.channel.type === "DM" ||
+                 !message.guild;
 
-    try {
+    console.log("[Discord] Message from:", message.author.username,
+                "Type:", message.channel.type,
+                "isDM:", isDM,
+                "Guild:", message.guild?.id || "none");
+
+    if (isDM) {
+      // Xenon Ally AI — DMs only
+      const isSubscriber = await isActiveSubscriber(message.author.id, "discord");
+      if (!isSubscriber) {
+        return message.reply("❌ Xenon Ally AI is available for active subscribers only. Get access at whop.com/xenon-alpha ⚡");
+      }
+
+      const rateCheck = checkRateLimit("discord_" + message.author.id);
+      if (!rateCheck.allowed) {
+        return message.reply("⏳ You've used all 5 daily messages across Telegram and Discord. Resets tomorrow! 📈");
+      }
+
       await message.channel.sendTyping();
       const aiResponse = await getXenonAllyResponse(message.content);
       await message.reply(aiResponse + "\n\n💬 " + rateCheck.remaining + " messages remaining today");
       console.log("Xenon Ally AI replied on Discord to:", message.author.id);
-    } catch (err) {
-      console.error("Discord AI error:", err.message);
-      await message.reply("⚠️ Something went wrong. Please try again!");
-    }
-    return;
-  }
 
-  if (message.content.startsWith("!link")) {
-    const parts = message.content.split(" ");
-    const username = parts[1];
-
-    if (!username) {
-      return message.reply("Usage: !link your_username");
-    }
-
-if (linkedDiscordUsers[message.author.id]) {
-  return message.reply("You already linked an account. Contact support if you need to change it.");
-}
-
-    users[username] = message.author.id;
-    fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
-
-    linkedDiscordUsers[message.author.id] = username;
-
-    message.reply(`Linked successfully as ${username}`);
-    console.log("Linked:", username, "→", message.author.id);
-}
-    if (message.content.startsWith("!resetlink")) {
-  const staffIds = [
-  "723800649623666759",
-  "1354794192869785693",
-  "1485950028873994391",
-  "1497748361342877827",
-  "1483638613810872413"
-];
-
-if (!staffIds.includes(message.author.id)) {
-  return message.reply("You are not allowed to reset links.");
-}
-
-  const parts = message.content.split(" ");
-  const username = parts[1];
-
-  if (!username || !users[username]) {
-    return message.reply("User not found.");
-  }
-
-  const discordId = users[username];
-
-  delete users[username];
-  delete linkedDiscordUsers[discordId];
-
-  fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
-
-  message.reply(`Link reset for ${username}`);
-}
-
-  if (message.content.startsWith("!mode")) {
-    if (message.author.id !== "723800649623666759") {
-      return message.reply("❌ You don't have permission to use this command.");
-    }
-
-    const arg = message.content.split(" ")[1];
-
-    if (arg === "manual") {
-      postMode = "manual";
-      return message.reply("✅ Mode set to MANUAL — signals sent to you privately");
-    } else if (arg === "auto") {
-      postMode = "auto";
-      return message.reply("✅ Mode set to AUTO — signals posting publicly");
-    } else if (arg === "status") {
-      return message.reply(`Current mode: **${postMode}**`);
     } else {
-      return message.reply("Usage: `!mode manual` | `!mode auto` | `!mode status`");
-    }
-  }
+      // Server channel commands
+      if (message.content.startsWith("!link")) {
+        const parts = message.content.split(" ");
+        const username = parts[1];
 
+        if (!username) return message.reply("Usage: !link your_username");
+
+        if (linkedDiscordUsers[message.author.id]) {
+          return message.reply("You already linked an account. Contact support if you need to change it.");
+        }
+
+        users[username] = message.author.id;
+        fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
+        linkedDiscordUsers[message.author.id] = username;
+        message.reply(`Linked successfully as ${username}`);
+        console.log("Linked:", username, "→", message.author.id);
+      }
+
+      if (message.content.startsWith("!resetlink")) {
+        const staffIds = [
+          "723800649623666759",
+          "1354794192869785693",
+          "1485950028873994391",
+          "1497748361342877827",
+          "1483638613810872413",
+        ];
+
+        if (!staffIds.includes(message.author.id)) {
+          return message.reply("You are not allowed to reset links.");
+        }
+
+        const parts = message.content.split(" ");
+        const username = parts[1];
+
+        if (!username || !users[username]) return message.reply("User not found.");
+
+        const discordId = users[username];
+        delete users[username];
+        delete linkedDiscordUsers[discordId];
+        fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
+        message.reply(`Link reset for ${username}`);
+      }
+
+      if (message.content.startsWith("!mode")) {
+        if (message.author.id !== "723800649623666759") {
+          return message.reply("❌ You don't have permission to use this command.");
+        }
+
+        const arg = message.content.split(" ")[1];
+
+        if (arg === "manual") {
+          postMode = "manual";
+          return message.reply("✅ Mode set to MANUAL — signals sent to you privately");
+        } else if (arg === "auto") {
+          postMode = "auto";
+          return message.reply("✅ Mode set to AUTO — signals posting publicly");
+        } else if (arg === "status") {
+          return message.reply(`Current mode: **${postMode}**`);
+        } else {
+          return message.reply("Usage: `!mode manual` | `!mode auto` | `!mode status`");
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[Discord] messageCreate error:", err.message);
+  }
 });
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
+client.on("ready", () => {
+  console.log("Discord client ready, sweeping DM channels...");
+  client.channels.cache.sweep((c) => c.type === 1);
+});
