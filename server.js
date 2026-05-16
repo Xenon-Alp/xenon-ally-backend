@@ -24,7 +24,11 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const { Client, GatewayIntentBits } = require("discord.js");
 const express = require("express");
 const axios = require("axios");
+const cron = require("node-cron");
 const TelegramBot = require("node-telegram-bot-api");
+
+// Required env: DAILY_BRIEF_TOPIC_ID — Telegram thread/topic ID for the Daily Market Brief channel
+const DAILY_BRIEF_TOPIC_ID = parseInt(process.env.DAILY_BRIEF_TOPIC_ID) || 0;
 
 console.log("Whop key loaded:", process.env.WHOP_API_KEY ? "YES" : "NO");
 
@@ -187,6 +191,151 @@ Inside you'll find:
     telegramBot.sendMessage(chatId, "Something went wrong. Please try again.");
   }
 });
+
+// ─── Daily Market Brief helpers ───────────────────────────────────────────────
+
+function fgEmoji(value) {
+  const v = parseInt(value);
+  if (v <= 25) return "😱 EXTREME FEAR";
+  if (v <= 45) return "😰 FEAR";
+  if (v <= 55) return "😐 NEUTRAL";
+  if (v <= 75) return "🤑 GREED";
+  return "🚀 EXTREME GREED";
+}
+
+function formatChange(pct) {
+  if (!pct) return "0.00%";
+  const sign = pct >= 0 ? "+" : "";
+  return `${sign}${pct.toFixed(2)}%`;
+}
+
+async function getCryptoData() {
+  const res = await axios.get("https://api.coingecko.com/api/v3/coins/markets", {
+    params: {
+      vs_currency: "usd",
+      order: "market_cap_desc",
+      per_page: 20,
+      page: 1,
+      price_change_percentage: "24h",
+    },
+  });
+  const coins = res.data;
+  const btc = coins.find((c) => c.id === "bitcoin");
+  const eth = coins.find((c) => c.id === "ethereum");
+  const alts = coins.filter((c) => c.id !== "bitcoin" && c.id !== "ethereum").slice(0, 3);
+  return { btc, eth, alts };
+}
+
+async function getStockData() {
+  const [sp500Res, nasdaqRes] = await Promise.all([
+    axios.get("https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1d&range=1d", { headers: { "User-Agent": "Mozilla/5.0" } }),
+    axios.get("https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC?interval=1d&range=1d", { headers: { "User-Agent": "Mozilla/5.0" } }),
+  ]);
+
+  const sp500 = sp500Res.data.chart.result[0].meta;
+  const nasdaq = nasdaqRes.data.chart.result[0].meta;
+
+  const activeRes = await axios.get(
+    "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=most_actives&count=3",
+    { headers: { "User-Agent": "Mozilla/5.0" } }
+  );
+  const activeStocks = activeRes.data.finance.result[0].quotes.slice(0, 3);
+
+  return { sp500, nasdaq, activeStocks };
+}
+
+async function getFearGreed() {
+  const res = await axios.get("https://api.alternative.me/fng/");
+  const data = res.data.data[0];
+  return { value: data.value, label: data.value_classification };
+}
+
+async function sendCryptoBrief() {
+  try {
+    const { btc, eth, alts } = await getCryptoData();
+    const fg = await getFearGreed();
+    const date = new Date().toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+    });
+
+    const altLines = alts.map((a) =>
+      `• ${a.symbol.toUpperCase()}: $${a.current_price.toLocaleString()} (${formatChange(a.price_change_percentage_24h)})`
+    ).join("\n");
+
+    const msg =
+`🌅 Xenon Alpha — Daily Market Brief
+${date}
+
+─────────────────────
+🪙 CRYPTO MARKET
+─────────────────────
+₿ BTC: $${btc.current_price.toLocaleString()} (${formatChange(btc.price_change_percentage_24h)})
+Ξ ETH: $${eth.current_price.toLocaleString()} (${formatChange(eth.price_change_percentage_24h)})
+
+🔥 Top Altcoins Today:
+${altLines}
+
+─────────────────────
+🧠 Market Sentiment
+Fear & Greed: ${fg.value} — ${fgEmoji(fg.value)}
+─────────────────────
+
+Powered by Xenon Alpha Pro ⚡`;
+
+    await telegramBot.sendMessage(-1003964213191, msg, { message_thread_id: DAILY_BRIEF_TOPIC_ID });
+    const dcChannel = await client.channels.fetch("1505104581359833148");
+    await dcChannel.send(msg);
+    console.log("✅ Crypto brief sent!");
+  } catch (err) {
+    console.error("❌ Crypto brief failed:", err.message);
+  }
+}
+
+async function sendStockBrief() {
+  try {
+    const { sp500, nasdaq, activeStocks } = await getStockData();
+    const fg = await getFearGreed();
+    const date = new Date().toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+    });
+
+    const sp500Change = ((sp500.regularMarketPrice - sp500.chartPreviousClose) / sp500.chartPreviousClose) * 100;
+    const nasdaqChange = ((nasdaq.regularMarketPrice - nasdaq.chartPreviousClose) / nasdaq.chartPreviousClose) * 100;
+
+    const stockLines = activeStocks.map((s) =>
+      `• ${s.symbol}: $${s.regularMarketPrice?.toFixed(2)} (${formatChange(s.regularMarketChangePercent)})`
+    ).join("\n");
+
+    const msg =
+`🌅 Xenon Alpha — Daily Market Brief
+${date}
+
+─────────────────────
+📈 STOCK MARKET
+─────────────────────
+📊 S&P 500: ${sp500.regularMarketPrice.toLocaleString()} (${formatChange(sp500Change)})
+📊 NASDAQ: ${nasdaq.regularMarketPrice.toLocaleString()} (${formatChange(nasdaqChange)})
+
+🔥 Most Active Today:
+${stockLines}
+
+─────────────────────
+🧠 Market Sentiment
+Fear & Greed: ${fg.value} — ${fgEmoji(fg.value)}
+─────────────────────
+
+Powered by Xenon Alpha Pro ⚡`;
+
+    await telegramBot.sendMessage(-1003964213191, msg, { message_thread_id: DAILY_BRIEF_TOPIC_ID });
+    const dcChannel = await client.channels.fetch("1505104581359833148");
+    await dcChannel.send(msg);
+    console.log("✅ Stock brief sent!");
+  } catch (err) {
+    console.error("❌ Stock brief failed:", err.message);
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 
 app.use(express.json());
 
@@ -684,6 +833,28 @@ app.post("/telegram-webhook", (req, res) => {
 });
 
 
+
+app.get("/test-crypto-brief", async (req, res) => {
+  await sendCryptoBrief();
+  res.json({ ok: true });
+});
+
+app.get("/test-stock-brief", async (req, res) => {
+  await sendStockBrief();
+  res.json({ ok: true });
+});
+
+// Stock brief: Mon / Wed / Fri at 9:50 AM EST
+cron.schedule("50 9 * * 1,3,5", () => {
+  console.log("📈 Sending stock brief...");
+  sendStockBrief();
+}, { timezone: "America/New_York" });
+
+// Crypto brief: Tue / Thu / Sat / Sun at 9:50 AM EST
+cron.schedule("50 9 * * 2,4,6,0", () => {
+  console.log("🪙 Sending crypto brief...");
+  sendCryptoBrief();
+}, { timezone: "America/New_York" });
 
 const RAILWAY_URL = "https://xenon-ally-backend-production.up.railway.app";
 
