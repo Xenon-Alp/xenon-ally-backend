@@ -32,6 +32,9 @@ async function isActiveSubscriber(id, platform = "telegram") {
       params: { page: 1, per: 100 },
     });
     const memberships = res.data.data || [];
+    if (platform === "telegram" && String(id) === "7452629458") {
+      console.log("[DEBUG 7452629458] Full Whop memberships response:", JSON.stringify(memberships, null, 2));
+    }
     return memberships.some((m) => {
       const match =
         platform === "discord"
