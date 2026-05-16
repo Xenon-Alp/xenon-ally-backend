@@ -654,6 +654,53 @@ app.post("/telegram-webhook", (req, res) => {
 });
 
 
+app.get("/test-signal", async (req, res) => {
+  const { pair, signal, entry, sl, tp1, tp2, be, timeframe } = {
+    pair: "BTCUSDT",
+    signal: "BUY",
+    timeframe: "60",
+    entry: "78500.00",
+    sl: "77800.00",
+    tp1: "79200.00",
+    tp2: "79900.00",
+    be: "78850.00",
+  };
+
+  const direction = signal === "BUY" ? "🟢 LONG" : "🔴 SHORT";
+  const tfDisplay = timeframe ? ` (${timeframe}m)` : "";
+
+  const risk = Math.abs(Number(entry) - Number(sl));
+  const reward = Math.abs(Number(tp1) - Number(entry));
+  const rr = risk > 0 ? `1:${(reward / risk).toFixed(1)}` : "N/A";
+
+  const publicCaption =
+`${direction} — ${pair}${tfDisplay}
+
+📥 Entry: ${entry}
+🛑 SL: ${sl}
+🎯 TP1: ${tp1}
+🎯 TP2: ${tp2}
+⚖️ BE: ${be}
+📊 RR: ${rr}
+
+Powered by Xenon Alpha Pro ⚡`;
+
+  try {
+    if (postMode === "manual") {
+      await telegramBot.sendMessage("7471817214", publicCaption);
+    } else if (postMode === "auto") {
+      await telegramBot.sendMessage("-1003925059991", publicCaption);
+      const discordChannel = await client.channels.fetch("1505081634347548754");
+      await discordChannel.send(publicCaption);
+    }
+    console.log("Test signal sent (mode:", postMode, ")");
+    res.json({ ok: true, mode: postMode, caption: publicCaption });
+  } catch (err) {
+    console.error("Test signal failed:", err.message);
+    res.json({ ok: false, error: err.message });
+  }
+});
+
 const RAILWAY_URL = "https://xenon-ally-backend-production.up.railway.app";
 
 app.listen(PORT, () => {
