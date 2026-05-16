@@ -308,7 +308,7 @@ app.post("/webhook", async (req, res) => {
   console.log("Signal received:");
   console.log(req.body);
 
-const { user, pair, signal, entry, tp1, tp2, sl, be, timeframe } = req.body;
+const { user, pair, signal, direction, entry, tp1, tp2, sl, be, timeframe } = req.body;
 
 const tradeLevels =
   signal === "BUY" || signal === "SELL"
@@ -538,6 +538,36 @@ Powered by Xenon Alpha Pro ⚡`;
       publicCaption =
 `🔒 BE Alert — ${cleanPairDisplay}
 Move your Stop Loss to Entry now!`;
+
+    } else if (signal === "TP1_HIT") {
+      const dir = direction || "LONG";
+      publicCaption =
+`🎯 TP1 HIT — ${cleanPairDisplay}
+
+Our ${dir} signal played out!
+
+📈 Direction: ${dir}
+💰 Entry: ${entry || "N/A"}
+✅ TP1: ${tp1 || "N/A"} HIT!
+🎯 TP2: ${tp2 || "N/A"} (running)
+🛑 SL was: ${sl || "N/A"}
+
+The algorithm doesn't miss 👁️
+Xenon Alpha Pro ⚡`;
+
+    } else if (signal === "TP2_HIT") {
+      const dir = direction || "LONG";
+      publicCaption =
+`🏆 TP2 HIT — ${cleanPairDisplay}
+
+Full trade played out perfectly!
+
+📈 Direction: ${dir}
+💰 Entry: ${entry || "N/A"}
+✅ TP1: ${tp1 || "N/A"} ✅
+✅ TP2: ${tp2 || "N/A"} ✅ FULL TP HIT!
+
+This is why we trade with Xenon Alpha Pro 🔥⚡`;
     }
 
     if (publicCaption) {
