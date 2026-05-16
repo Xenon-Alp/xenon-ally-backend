@@ -41,24 +41,7 @@ intents: [
 
 // Required env: TG_GROUP_ID — Telegram group chat ID used to generate one-time member invite links
 const telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-  polling: {
-    autoStart: false,
-    params: {
-      timeout: 10,
-      allowed_updates: ["message", "callback_query"],
-    },
-  },
-});
-
-telegramBot.on("polling_error", (error) => {
-  console.error("Polling error:", error.code);
-});
-
-// Delete any existing webhook and release held polling connections before starting,
-// preventing 409 Conflict when Railway overlaps old and new instances during deploy.
-telegramBot.deleteWebHook({ drop_pending_updates: true }).then(() => {
-  telegramBot.startPolling();
-  console.log("Telegram polling started");
+  polling: false,
 });
 
 
@@ -490,8 +473,19 @@ ${insight}
   }
 });
 
+app.post("/telegram-webhook", (req, res) => {
+  telegramBot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+
+const RAILWAY_URL = "https://xenon-ally-backend-production.up.railway.app";
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+
+  telegramBot.setWebHook(`${RAILWAY_URL}/telegram-webhook`)
+    .then(() => console.log("Telegram webhook set"))
+    .catch((err) => console.error("Failed to set Telegram webhook:", err.message));
 });
 
 client.on("clientReady", () => {
