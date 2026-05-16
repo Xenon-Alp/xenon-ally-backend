@@ -474,6 +474,7 @@ ${insight}
 });
 
 app.post("/telegram-webhook", (req, res) => {
+  console.log("Telegram update received:", JSON.stringify(req.body));
   telegramBot.processUpdate(req.body);
   res.sendStatus(200);
 });
