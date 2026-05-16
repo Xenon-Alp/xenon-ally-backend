@@ -970,10 +970,21 @@ client.on("clientReady", () => {
 
 client.on("messageCreate", async (message) => {
   console.log("[Discord] Message received from:", message.author?.username, "Channel type:", message.channel.type);
+
+  // Fetch partial messages
+  if (message.partial) {
+    try {
+      await message.fetch();
+    } catch (err) {
+      console.error("Failed to fetch partial message:", err);
+      return;
+    }
+  }
+
   if (message.author.bot) return;
 
   // Xenon Ally AI — Discord DMs only
-  if (message.channel.type === 1) {
+  if (message.channel.type === 1 || message.channel.type === "DM") {
     const isSubscriber = await isActiveSubscriber(message.author.id, "discord");
     if (!isSubscriber) {
       return message.reply("❌ Xenon Ally AI is available for active subscribers only. Get access at whop.com/xenon-alpha ⚡");
