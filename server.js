@@ -1065,11 +1065,20 @@ client.once("clientReady", async (c) => {
   console.log("✅ Global slash command /ask registered!");
 });
 
+client.on("error", (err) => {
+  console.error("[Discord] Client error:", err.message);
+});
+
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
   if (interaction.commandName !== "ask") return;
 
-  await interaction.deferReply({ flags: 64 });
+  try {
+    await interaction.deferReply({ flags: 64 });
+  } catch (err) {
+    console.error("[Discord] deferReply failed (duplicate instance or expired):", err.message);
+    return;
+  }
 
   const question = interaction.options.getString("question");
   const userId = interaction.user.id;
@@ -1088,7 +1097,7 @@ client.on("interactionCreate", async (interaction) => {
     const aiResponse = await getXenonAllyResponse(question);
     await interaction.editReply(aiResponse + "\n\n💬 " + rateCheck.remaining + " messages remaining today");
   } catch (err) {
-    console.error("Discord slash AI error:", err.message);
+    console.error("[Discord] slash AI error:", err.message);
     await interaction.editReply("⚠️ Something went wrong. Please try again!");
   }
 });
