@@ -578,7 +578,8 @@ app.post("/webhook", async (req, res) => {
   console.log("Signal received:");
   console.log(req.body);
 
-const { user, pair, signal, direction, entry, tp1, tp2, sl, be, timeframe } = req.body;
+const { user, pair, direction, entry, tp1, tp2, sl, be, timeframe } = req.body;
+const signal = req.body.signal || req.body.event;
 
 const tradeLevels =
   signal === "BUY" || signal === "SELL"
