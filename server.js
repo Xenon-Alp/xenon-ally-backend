@@ -45,6 +45,7 @@ const telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
     autoStart: false,
     params: {
       timeout: 10,
+      allowed_updates: ["message", "callback_query"],
     },
   },
 });
