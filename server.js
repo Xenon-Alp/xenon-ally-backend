@@ -41,7 +41,23 @@ intents: [
 
 // Required env: TG_GROUP_ID — Telegram group chat ID used to generate one-time member invite links
 const telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-  polling: true,
+  polling: {
+    autoStart: false,
+    params: {
+      timeout: 10,
+    },
+  },
+});
+
+telegramBot.on("polling_error", (error) => {
+  console.error("Polling error:", error.code);
+});
+
+// Delete any existing webhook and release held polling connections before starting,
+// preventing 409 Conflict when Railway overlaps old and new instances during deploy.
+telegramBot.deleteWebHook({ drop_pending_updates: true }).then(() => {
+  telegramBot.startPolling();
+  console.log("Telegram polling started");
 });
 
 
