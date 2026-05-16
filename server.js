@@ -602,23 +602,6 @@ app.post("/telegram-webhook", (req, res) => {
   res.sendStatus(200);
 });
 
-app.get("/test-tv-add/:username", async (req, res) => {
-  try {
-    const result = await addTVUser(req.params.username);
-    res.json({ success: true, result });
-  } catch (err) {
-    res.json({ success: false, error: err.response?.data || err.message });
-  }
-});
-
-app.get("/test-tv-remove/:username", async (req, res) => {
-  try {
-    const result = await removeTVUser(req.params.username);
-    res.json({ success: true, result });
-  } catch (err) {
-    res.json({ success: false, error: err.response?.data || err.message });
-  }
-});
 
 const RAILWAY_URL = "https://xenon-ally-backend-production.up.railway.app";
 
