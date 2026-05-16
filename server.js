@@ -39,7 +39,11 @@ intents: [
 ],
 });
 
-// Required env: TG_GROUP_ID — Telegram group chat ID used to generate one-time member invite links
+// Required env: TG_GROUP_ID    — Telegram group chat ID for one-time member invite links
+// Required env: TV_SCRIPT_ID  — TradingView Pine Script ID (from the indicator URL)
+// Required env: TV_SESSION_ID — TradingView sessionid cookie value
+// Required env: TV_SESSION_SIGN — TradingView sessionid_sign cookie value
+// Required env: TV_CSRF_TOKEN — TradingView csrftoken cookie value
 const telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
   polling: false,
 });
@@ -78,6 +82,36 @@ async function findWhopMemberByTelegramId(telegramId) {
     console.log("Whop error (Telegram lookup):", err.message);
     return null;
   }
+}
+
+function getTradingViewUsername(membership) {
+  const answers = membership.custom_field_responses || [];
+  const field = answers.find((a) =>
+    String(a.question || "").trim().toLowerCase().includes("tradingview")
+  );
+  return field ? String(field.answer || "").trim() : null;
+}
+
+async function updateTradingViewAccess(tvUsername, action) {
+  const body = new URLSearchParams({
+    username: tvUsername,
+    script_id: process.env.TV_SCRIPT_ID,
+  });
+
+  const res = await axios.post(
+    `https://www.tradingview.com/pine_perm/${action}/`,
+    body.toString(),
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Cookie": `sessionid=${process.env.TV_SESSION_ID}; sessionid_sign=${process.env.TV_SESSION_SIGN}; csrftoken=${process.env.TV_CSRF_TOKEN}`,
+        "X-CSRFToken": process.env.TV_CSRF_TOKEN,
+        "Referer": "https://www.tradingview.com/",
+      },
+    }
+  );
+
+  return res.data;
 }
 
 telegramBot.onText(/\/start/, async (msg) => {
@@ -470,6 +504,88 @@ ${insight}
   } catch (err) {
     console.error("Error processing webhook:", err);
     res.json({ message: "Webhook error" });
+  }
+});
+
+app.post("/whop-webhook", async (req, res) => {
+  res.sendStatus(200); // Acknowledge immediately so Whop doesn't retry
+
+  const { action, data } = req.body;
+  const membership = data?.object;
+
+  if (!membership) return;
+
+  console.log("Whop event:", action);
+
+  const tvUsername = getTradingViewUsername(membership);
+  const discordId = membership.discord?.id;
+  const telegramId = membership.telegram_account_id;
+
+  if (action === "membership.went_valid") {
+    if (tvUsername) {
+      try {
+        await updateTradingViewAccess(tvUsername, "add");
+        console.log("✅ TV access granted:", tvUsername);
+      } catch (err) {
+        console.error("❌ TV access grant failed:", tvUsername, err.response?.data || err.message);
+      }
+    } else {
+      console.log("⚠️ No TradingView username found for new member");
+    }
+
+    if (telegramId) {
+      try {
+        await telegramBot.sendMessage(
+          telegramId,
+`🎉 Welcome to Xenon Alpha!
+
+Your membership is now active.
+
+To get your group access and start receiving live signals:
+
+👉 Open this chat with Xenon Ally and tap /start
+@XenonAllyBot
+
+⚡ Powered by Ally`
+        );
+        console.log("Telegram welcome DM sent:", telegramId);
+      } catch (err) {
+        console.error("Telegram welcome DM failed:", err.message);
+      }
+    }
+
+    if (discordId) {
+      try {
+        const targetUser = await client.users.fetch(discordId);
+        await targetUser.send(
+`🎉 **Welcome to Xenon Alpha!**
+
+Your membership is now active.
+
+**To get started:**
+1. Open Telegram and message **@XenonAllyBot**
+2. Tap **/start** — Ally will verify your access and drop you a private invite link to the member group
+3. Live trading signals will be delivered here on Discord automatically
+
+⚡ Powered by **Ally**`
+        );
+        console.log("Discord welcome DM sent:", discordId);
+      } catch (err) {
+        console.error("Discord welcome DM failed:", err.message);
+      }
+    }
+
+  } else if (action === "membership.went_invalid") {
+    if (tvUsername) {
+      try {
+        await updateTradingViewAccess(tvUsername, "remove");
+        console.log("✅ TV access removed:", tvUsername);
+      } catch (err) {
+        console.error("❌ TV access removal failed:", tvUsername, err.response?.data || err.message);
+      }
+    } else {
+      console.log("⚠️ No TradingView username found for expired member");
+    }
   }
 });
 
