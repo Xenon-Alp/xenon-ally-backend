@@ -6,14 +6,14 @@ const linkedDiscordUsers = {};
 
 let postMode = "manual"; // "manual" = private preview to owner, "auto" = post publicly
 
-const userMessageCount = new Map(); // { telegramId: { count, date } }
+const userMessageCount = new Map(); // { "platform_id": { count, date } }
 
-function checkRateLimit(telegramId) {
+function checkRateLimit(key) {
   const today = new Date().toDateString();
-  const userData = userMessageCount.get(telegramId);
+  const userData = userMessageCount.get(key);
 
   if (!userData || userData.date !== today) {
-    userMessageCount.set(telegramId, { count: 1, date: today });
+    userMessageCount.set(key, { count: 1, date: today });
     return { allowed: true, remaining: 4 };
   }
 
@@ -37,6 +37,22 @@ async function isActiveSubscriber(telegramId) {
     );
   } catch (err) {
     console.error("Whop subscriber check failed:", err.message);
+    return false;
+  }
+}
+
+async function isActiveDiscordSubscriber(discordId) {
+  try {
+    const res = await axios.get("https://api.whop.com/api/v2/memberships", {
+      headers: { Authorization: `Bearer ${process.env.WHOP_API_KEY}` },
+      params: { page: 1, per: 100 },
+    });
+    const memberships = res.data.data || [];
+    return memberships.some(
+      (m) => m.discord?.id === String(discordId) && m.status === "active"
+    );
+  } catch (err) {
+    console.error("Whop Discord subscriber check failed:", err.message);
     return false;
   }
 }
@@ -270,7 +286,7 @@ telegramBot.on("message", async (msg) => {
     );
   }
 
-  const rateCheck = checkRateLimit(telegramId);
+  const rateCheck = checkRateLimit("telegram_" + telegramId);
   if (!rateCheck.allowed) {
     return telegramBot.sendMessage(
       chatId,
@@ -961,8 +977,32 @@ client.on("clientReady", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
-client.on("messageCreate", (message) => {
+client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+
+  // Xenon Ally AI — Discord DMs only
+  if (message.channel.type === 1 && !message.content.startsWith("!")) {
+    const subscribed = await isActiveDiscordSubscriber(message.author.id);
+    if (!subscribed) {
+      return message.reply("❌ Xenon Ally AI is available for active subscribers only. Get access at whop.com/xenon-alpha ⚡");
+    }
+
+    const rateCheck = checkRateLimit("discord_" + message.author.id);
+    if (!rateCheck.allowed) {
+      return message.reply("⏳ You've used all 5 daily messages across Telegram and Discord. Resets tomorrow! 📈");
+    }
+
+    try {
+      await message.channel.sendTyping();
+      const reply = await getXenonAllyResponse(message.content);
+      await message.reply(`${reply}\n\n💬 ${rateCheck.remaining} messages remaining today`);
+      console.log("Xenon Ally AI replied on Discord to:", message.author.id);
+    } catch (err) {
+      console.error("Xenon Ally Discord AI error:", err.message);
+      message.reply("Something went wrong. Please try again.");
+    }
+    return;
+  }
 
   if (message.content.startsWith("!link")) {
     const parts = message.content.split(" ");
