@@ -834,15 +834,6 @@ app.post("/telegram-webhook", (req, res) => {
 
 
 
-app.get("/test-crypto-brief", async (req, res) => {
-  await sendCryptoBrief();
-  res.json({ ok: true });
-});
-
-app.get("/test-stock-brief", async (req, res) => {
-  await sendStockBrief();
-  res.json({ ok: true });
-});
 
 // Stock brief: Mon / Wed / Fri at 9:50 AM EST
 cron.schedule("50 9 * * 1,3,5", () => {
