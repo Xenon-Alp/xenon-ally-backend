@@ -96,6 +96,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // Required env: DAILY_BRIEF_TOPIC_ID — Telegram thread/topic ID for the Daily Market Brief channel
 const DAILY_BRIEF_TOPIC_ID = parseInt(process.env.DAILY_BRIEF_TOPIC_ID) || 0;
+const briefSentDates = new Set(); // deduplication guard: "crypto_<date>" / "stock_<date>"
 
 console.log("Whop key loaded:", process.env.WHOP_API_KEY ? "YES" : "NO");
 
@@ -365,6 +366,9 @@ async function getFearGreed() {
 }
 
 async function sendCryptoBrief() {
+  const key = `crypto_${new Date().toDateString()}`;
+  if (briefSentDates.has(key)) { console.log("⏭️ Crypto brief already sent today, skipping"); return; }
+  briefSentDates.add(key);
   try {
     const { btc, eth, alts } = await getCryptoData();
     const fg = await getFearGreed();
@@ -406,6 +410,9 @@ Powered by Xenon Alpha Pro ⚡`;
 }
 
 async function sendStockBrief() {
+  const key = `stock_${new Date().toDateString()}`;
+  if (briefSentDates.has(key)) { console.log("⏭️ Stock brief already sent today, skipping"); return; }
+  briefSentDates.add(key);
   try {
     const { sp500, nasdaq, activeStocks } = await getStockData();
     const fg = await getFearGreed();
@@ -816,89 +823,6 @@ ${insight}
       );
 
       console.log("Telegram message sent!");
-    }
-
-    // Build public post caption for manual preview or auto posting
-    const cleanPairDisplay = pair.replace(".P", "").trim();
-    let publicCaption = "";
-
-    if (signal === "BUY" || signal === "SELL") {
-      const direction = signal === "BUY" ? "🟢 LONG" : "🔴 SHORT";
-      const tfDisplay = timeframe ? ` (${timeframe})` : "";
-
-      let rr = "N/A";
-      if (entry && sl && tp1) {
-        const risk = Math.abs(Number(entry) - Number(sl));
-        const reward = Math.abs(Number(tp1) - Number(entry));
-        if (risk > 0) rr = `1:${(reward / risk).toFixed(1)}`;
-      }
-
-      publicCaption =
-`${direction} — ${cleanPairDisplay}${tfDisplay}
-
-📥 Entry: ${entry || "N/A"}
-🛑 SL: ${sl || "N/A"}
-🎯 TP1: ${tp1 || "N/A"}
-🎯 TP2: ${tp2 || "N/A"}
-⚖️ BE: ${be || "N/A"}
-📊 RR: ${rr}
-
-Powered by Xenon Alpha Pro ⚡`;
-
-    } else if (signal === "BE") {
-      publicCaption =
-`🔒 BE Alert — ${cleanPairDisplay}
-Move your Stop Loss to Entry now!`;
-
-    } else if (signal === "TP1_HIT") {
-      const dir = direction || "LONG";
-      publicCaption =
-`🎯 TP1 HIT — ${cleanPairDisplay}
-
-Our ${dir} signal played out!
-
-📈 Direction: ${dir}
-💰 Entry: ${entry || "N/A"}
-✅ TP1: ${tp1 || "N/A"} HIT!
-🎯 TP2: ${tp2 || "N/A"} (running)
-🛑 SL was: ${sl || "N/A"}
-
-The algorithm doesn't miss 👁️
-Xenon Alpha Pro ⚡`;
-
-    } else if (signal === "TP2_HIT") {
-      const dir = direction || "LONG";
-      publicCaption =
-`🏆 TP2 HIT — ${cleanPairDisplay}
-
-Full trade played out perfectly!
-
-📈 Direction: ${dir}
-💰 Entry: ${entry || "N/A"}
-✅ TP1: ${tp1 || "N/A"} ✅
-✅ TP2: ${tp2 || "N/A"} ✅ FULL TP HIT!
-
-This is why we trade with Xenon Alpha Pro 🔥⚡`;
-    }
-
-    if (publicCaption) {
-      try {
-        const isTPHit = signal === "TP1_HIT" || signal === "TP2_HIT";
-
-        if (postMode === "manual" && isTPHit) {
-          // TP hits only — send to founder for preview
-          await telegramBot.sendMessage("7471817214", publicCaption);
-          console.log("📤 TP hit preview sent privately (manual mode)");
-        } else if (postMode === "auto") {
-          // All signal types — post publicly
-          await telegramBot.sendMessage("-1003925059991", publicCaption);
-          const discordChannel = await client.channels.fetch("1505081634347548754");
-          await discordChannel.send(publicCaption);
-          console.log("📢 Signal posted publicly (auto mode):", signal);
-        }
-      } catch (err) {
-        console.error("Public post failed:", err.message);
-      }
     }
 
     res.json({
