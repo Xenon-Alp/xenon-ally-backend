@@ -43,7 +43,7 @@ intents: [
 // Required env: TV_SCRIPT_ID  — TradingView Pine Script ID (from the indicator URL)
 // Required env: TV_SESSION_ID — TradingView sessionid cookie value
 // Required env: TV_SESSION_SIGN — TradingView sessionid_sign cookie value
-// Required env: TV_CSRF_TOKEN — TradingView csrftoken cookie value
+// Optional env: TV_CSRF_TOKEN — TradingView csrftoken cookie (add if requests return 403)
 const telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
   polling: false,
 });
@@ -104,8 +104,8 @@ async function updateTradingViewAccess(tvUsername, action) {
     {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Cookie": `sessionid=${process.env.TV_SESSION_ID}; sessionid_sign=${process.env.TV_SESSION_SIGN}; csrftoken=${process.env.TV_CSRF_TOKEN}`,
-        "X-CSRFToken": process.env.TV_CSRF_TOKEN,
+        "Cookie": `sessionid=${process.env.TV_SESSION_ID}; sessionid_sign=${process.env.TV_SESSION_SIGN}${process.env.TV_CSRF_TOKEN ? `; csrftoken=${process.env.TV_CSRF_TOKEN}` : ""}`,
+        ...(process.env.TV_CSRF_TOKEN && { "X-CSRFToken": process.env.TV_CSRF_TOKEN }),
         "Referer": "https://www.tradingview.com/",
       },
     }
