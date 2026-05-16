@@ -616,6 +616,54 @@ volumeStatus =
      console.log("Market data not available for:", cleanPair, err.response?.data || err.message);
     }
 
+    // TP hits are indicator-triggered, not user-triggered — skip subscriber check
+    if (signal === "TP1_HIT" || signal === "TP2_HIT") {
+      const cleanPairDisplay = pair.replace(".P", "").trim();
+      const dir = direction || "LONG";
+
+      const tpCaption = signal === "TP1_HIT"
+        ?
+`🎯 TP1 HIT — ${cleanPairDisplay}
+
+Our ${dir} signal played out!
+
+📈 Direction: ${dir}
+💰 Entry: ${entry || "N/A"}
+✅ TP1: ${tp1 || "N/A"} HIT!
+🎯 TP2: ${tp2 || "N/A"} (running)
+🛑 SL was: ${sl || "N/A"}
+
+The algorithm doesn't miss 👁️
+Xenon Alpha Pro ⚡`
+        :
+`🏆 TP2 HIT — ${cleanPairDisplay}
+
+Full trade played out perfectly!
+
+📈 Direction: ${dir}
+💰 Entry: ${entry || "N/A"}
+✅ TP1: ${tp1 || "N/A"} ✅
+✅ TP2: ${tp2 || "N/A"} ✅ FULL TP HIT!
+
+This is why we trade with Xenon Alpha Pro 🔥⚡`;
+
+      try {
+        if (postMode === "manual") {
+          await telegramBot.sendMessage("7471817214", tpCaption);
+          console.log("📤 TP hit preview sent privately (manual mode):", signal);
+        } else if (postMode === "auto") {
+          await telegramBot.sendMessage("-1003925059991", tpCaption);
+          const discordChannel = await client.channels.fetch("1505081634347548754");
+          await discordChannel.send(tpCaption);
+          console.log("📢 TP hit posted publicly (auto mode):", signal);
+        }
+      } catch (err) {
+        console.error("TP hit post failed:", err.message);
+      }
+
+      return res.json({ message: "TP hit processed" });
+    }
+
     const whopMember = await checkWhopSubscription(user);
 
     if (!whopMember) {
