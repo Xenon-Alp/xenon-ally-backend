@@ -828,14 +828,18 @@ This is why we trade with Xenon Alpha Pro 🔥⚡`;
 
     if (publicCaption) {
       try {
-        if (postMode === "manual") {
+        const isTPHit = signal === "TP1_HIT" || signal === "TP2_HIT";
+
+        if (postMode === "manual" && isTPHit) {
+          // TP hits only — send to founder for preview
           await telegramBot.sendMessage("7471817214", publicCaption);
-          console.log("📤 Signal preview sent privately (manual mode)");
+          console.log("📤 TP hit preview sent privately (manual mode)");
         } else if (postMode === "auto") {
+          // All signal types — post publicly
           await telegramBot.sendMessage("-1003925059991", publicCaption);
           const discordChannel = await client.channels.fetch("1505081634347548754");
           await discordChannel.send(publicCaption);
-          console.log("📢 Signal posted publicly (auto mode)");
+          console.log("📢 Signal posted publicly (auto mode):", signal);
         }
       } catch (err) {
         console.error("Public post failed:", err.message);
