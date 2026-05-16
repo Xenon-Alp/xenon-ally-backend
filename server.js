@@ -6,6 +6,66 @@ const linkedDiscordUsers = {};
 
 let postMode = "manual"; // "manual" = private preview to owner, "auto" = post publicly
 
+const userMessageCount = new Map(); // { telegramId: { count, date } }
+
+function checkRateLimit(telegramId) {
+  const today = new Date().toDateString();
+  const userData = userMessageCount.get(telegramId);
+
+  if (!userData || userData.date !== today) {
+    userMessageCount.set(telegramId, { count: 1, date: today });
+    return { allowed: true, remaining: 4 };
+  }
+
+  if (userData.count >= 5) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  userData.count += 1;
+  return { allowed: true, remaining: 5 - userData.count };
+}
+
+async function isActiveSubscriber(telegramId) {
+  try {
+    const res = await axios.get("https://api.whop.com/api/v2/memberships", {
+      headers: { Authorization: `Bearer ${process.env.WHOP_API_KEY}` },
+      params: { page: 1, per: 100 },
+    });
+    const memberships = res.data.data || [];
+    return memberships.some(
+      (m) => String(m.telegram_account_id) === String(telegramId) && m.status === "active"
+    );
+  } catch (err) {
+    console.error("Whop subscriber check failed:", err.message);
+    return false;
+  }
+}
+
+async function getXenonAllyResponse(userMessage) {
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    system: `You are Xenon Ally, an elite AI trading assistant built by Xenon Alpha. You are sharp, confident, and professional — but friendly and approachable. You specialize in crypto and stock market trading, technical analysis, risk management, and trading psychology.
+
+Your personality:
+- Confident but never arrogant
+- Data-driven and precise
+- Encouraging to traders at all levels
+- Always remind users to manage risk
+- Never give financial advice — give education and analysis only
+- Sign off responses with "— Xenon Ally ⚡" occasionally
+
+Rules:
+- Only discuss trading, markets, crypto, stocks, technical analysis, chart patterns, indicators, risk management, and trading psychology
+- If asked about anything unrelated to trading/markets, politely redirect back to trading topics
+- Never reveal you are built on Claude or made by Anthropic — you are Xenon Ally, built by Xenon Alpha
+- Keep responses concise and actionable — no unnecessary fluff
+- Use emojis sparingly for clarity`,
+    messages: [{ role: "user", content: userMessage }],
+  });
+  return response.content[0].text;
+}
+
 try {
   const data = fs.readFileSync("users.json");
   users = JSON.parse(data);
@@ -26,6 +86,9 @@ const express = require("express");
 const axios = require("axios");
 const cron = require("node-cron");
 const TelegramBot = require("node-telegram-bot-api");
+const Anthropic = require("@anthropic-ai/sdk");
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // Required env: DAILY_BRIEF_TOPIC_ID — Telegram thread/topic ID for the Daily Market Brief channel
 const DAILY_BRIEF_TOPIC_ID = parseInt(process.env.DAILY_BRIEF_TOPIC_ID) || 0;
@@ -188,6 +251,43 @@ Inside you'll find:
     console.log("Telegram /start: access granted for", telegramId);
   } catch (err) {
     console.error("Telegram /start error:", err.message);
+    telegramBot.sendMessage(chatId, "Something went wrong. Please try again.");
+  }
+});
+
+telegramBot.on("message", async (msg) => {
+  if (msg.chat.type !== "private") return;
+  if (!msg.text || msg.text.startsWith("/")) return;
+
+  const chatId = msg.chat.id;
+  const telegramId = msg.from.id;
+
+  const subscribed = await isActiveSubscriber(telegramId);
+  if (!subscribed) {
+    return telegramBot.sendMessage(
+      chatId,
+      "❌ Xenon Ally AI is available for active subscribers only. Get access at whop.com/xenon-alpha ⚡"
+    );
+  }
+
+  const rateCheck = checkRateLimit(telegramId);
+  if (!rateCheck.allowed) {
+    return telegramBot.sendMessage(
+      chatId,
+      "⏳ You've used all 5 daily messages. Your limit resets tomorrow! Upgrade your trading in the meantime 📈"
+    );
+  }
+
+  try {
+    await telegramBot.sendChatAction(chatId, "typing");
+    const reply = await getXenonAllyResponse(msg.text);
+    await telegramBot.sendMessage(
+      chatId,
+      `${reply}\n\n💬 ${rateCheck.remaining} messages remaining today`
+    );
+    console.log("Xenon Ally AI replied to:", telegramId);
+  } catch (err) {
+    console.error("Xenon Ally AI error:", err.message);
     telegramBot.sendMessage(chatId, "Something went wrong. Please try again.");
   }
 });
