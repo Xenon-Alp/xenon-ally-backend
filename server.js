@@ -4,6 +4,8 @@ let users = {};
 
 const linkedDiscordUsers = {};
 
+let postMode = "manual"; // "manual" = private preview to owner, "auto" = post publicly
+
 try {
   const data = fs.readFileSync("users.json");
   users = JSON.parse(data);
@@ -306,7 +308,7 @@ app.post("/webhook", async (req, res) => {
   console.log("Signal received:");
   console.log(req.body);
 
-const { user, pair, signal, entry, tp1, tp2, sl, be } = req.body;
+const { user, pair, signal, entry, tp1, tp2, sl, be, timeframe } = req.body;
 
 const tradeLevels =
   signal === "BUY" || signal === "SELL"
@@ -505,6 +507,55 @@ ${insight}
       console.log("Telegram message sent!");
     }
 
+    // Build public post caption for manual preview or auto posting
+    const cleanPairDisplay = pair.replace(".P", "").trim();
+    let publicCaption = "";
+
+    if (signal === "BUY" || signal === "SELL") {
+      const direction = signal === "BUY" ? "🟢 LONG" : "🔴 SHORT";
+      const tfDisplay = timeframe ? ` (${timeframe})` : "";
+
+      let rr = "N/A";
+      if (entry && sl && tp1) {
+        const risk = Math.abs(Number(entry) - Number(sl));
+        const reward = Math.abs(Number(tp1) - Number(entry));
+        if (risk > 0) rr = `1:${(reward / risk).toFixed(1)}`;
+      }
+
+      publicCaption =
+`${direction} — ${cleanPairDisplay}${tfDisplay}
+
+📥 Entry: ${entry || "N/A"}
+🛑 SL: ${sl || "N/A"}
+🎯 TP1: ${tp1 || "N/A"}
+🎯 TP2: ${tp2 || "N/A"}
+⚖️ BE: ${be || "N/A"}
+📊 RR: ${rr}
+
+Powered by Xenon Alpha Pro ⚡`;
+
+    } else if (signal === "BE") {
+      publicCaption =
+`🔒 BE Alert — ${cleanPairDisplay}
+Move your Stop Loss to Entry now!`;
+    }
+
+    if (publicCaption) {
+      try {
+        if (postMode === "manual") {
+          await telegramBot.sendMessage("7471817214", publicCaption);
+          console.log("📤 Signal preview sent privately (manual mode)");
+        } else if (postMode === "auto") {
+          await telegramBot.sendMessage("-1003925059991", publicCaption);
+          const discordChannel = await client.channels.fetch("1505081634347548754");
+          await discordChannel.send(publicCaption);
+          console.log("📢 Signal posted publicly (auto mode)");
+        }
+      } catch (err) {
+        console.error("Public post failed:", err.message);
+      }
+    }
+
     res.json({
       message: "Webhook received successfully",
     });
@@ -669,6 +720,26 @@ if (!staffIds.includes(message.author.id)) {
 
   message.reply(`Link reset for ${username}`);
 }
+
+  if (message.content.startsWith("!mode")) {
+    if (message.author.id !== "723800649623666759") {
+      return message.reply("❌ You don't have permission to use this command.");
+    }
+
+    const arg = message.content.split(" ")[1];
+
+    if (arg === "manual") {
+      postMode = "manual";
+      return message.reply("✅ Mode set to MANUAL — signals sent to you privately");
+    } else if (arg === "auto") {
+      postMode = "auto";
+      return message.reply("✅ Mode set to AUTO — signals posting publicly");
+    } else if (arg === "status") {
+      return message.reply(`Current mode: **${postMode}**`);
+    } else {
+      return message.reply("Usage: `!mode manual` | `!mode auto` | `!mode status`");
+    }
+  }
 
 });
 
