@@ -85,7 +85,7 @@ const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const { Client, GatewayIntentBits, Partials } = require("discord.js");
+const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const express = require("express");
 const axios = require("axios");
 const cron = require("node-cron");
@@ -1034,33 +1034,11 @@ client.on("messageCreate", async (message) => {
     // Now check author after fetch
     if (!message.author || message.author.bot) return;
 
-    const isDM = message.channel.type === 1 ||
-                 message.channel.type === "DM" ||
-                 !message.guild;
-
     console.log("[Discord] Message from:", message.author.username,
                 "Type:", message.channel.type,
-                "isDM:", isDM,
                 "Guild:", message.guild?.id || "none");
 
-    if (isDM) {
-      // Xenon Ally AI — DMs only
-      const isSubscriber = await isActiveSubscriber(message.author.id, "discord");
-      if (!isSubscriber) {
-        return message.reply("❌ Xenon Ally AI is available for active subscribers only. Get access at whop.com/xenon-alpha ⚡");
-      }
-
-      const rateCheck = checkRateLimit("discord_" + message.author.id);
-      if (!rateCheck.allowed) {
-        return message.reply("⏳ You've used all 5 daily messages across Telegram and Discord. Resets tomorrow! 📈");
-      }
-
-      await message.channel.sendTyping();
-      const aiResponse = await getXenonAllyResponse(message.content);
-      await message.reply(aiResponse + "\n\n💬 " + rateCheck.remaining + " messages remaining today");
-      console.log("Xenon Ally AI replied on Discord to:", message.author.id);
-
-    } else {
+    if (message.guild) {
       // Server channel commands
       if (message.content.startsWith("!link")) {
         const parts = message.content.split(" ");
@@ -1135,7 +1113,54 @@ client.on("channelCreate", (channel) => {
   console.log("[Discord] Channel created/cached:", channel.type, channel.id);
 });
 
-client.once("clientReady", (c) => {
+const commands = [
+  new SlashCommandBuilder()
+    .setName("ask")
+    .setDescription("Ask Xenon Ally AI a trading question")
+    .addStringOption((option) =>
+      option.setName("question").setDescription("Your trading question").setRequired(true)
+    ),
+].map((cmd) => cmd.toJSON());
+
+const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN);
+
+client.once("clientReady", async (c) => {
   console.log(`✅ Discord logged in as ${c.user.tag}`);
   c.channels.cache.sweep((ch) => ch.type === 1);
+  await rest.put(Routes.applicationCommands(c.user.id), { body: commands });
+  console.log("✅ Global slash command /ask registered!");
+});
+
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName !== "ask") return;
+
+  const question = interaction.options.getString("question");
+  const userId = interaction.user.id;
+
+  const isSubscriber = await isActiveSubscriber(userId, "discord");
+  if (!isSubscriber) {
+    return interaction.reply({
+      content: "❌ Xenon Ally AI is available for active subscribers only. Get access at whop.com/xenon-alpha ⚡",
+      ephemeral: true,
+    });
+  }
+
+  const rateCheck = checkRateLimit("discord_" + userId);
+  if (!rateCheck.allowed) {
+    return interaction.reply({
+      content: "⏳ You have used all 5 daily messages. Resets tomorrow! 📈",
+      ephemeral: true,
+    });
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+
+  try {
+    const aiResponse = await getXenonAllyResponse(question);
+    await interaction.editReply(aiResponse + "\n\n💬 " + rateCheck.remaining + " messages remaining today");
+  } catch (err) {
+    console.error("Discord slash AI error:", err.message);
+    await interaction.editReply("⚠️ Something went wrong. Please try again!");
+  }
 });
