@@ -103,13 +103,17 @@ const app = express();
 const PORT = 3000;
 
 
+const { Partials } = require("discord.js");
+
 const client = new Client({
-intents: [
-  GatewayIntentBits.Guilds,
-  GatewayIntentBits.DirectMessages,
-  GatewayIntentBits.GuildMessages,
-  GatewayIntentBits.MessageContent
-],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.DirectMessageTyping,
+  ],
+  partials: [Partials.Channel, Partials.Message],
 });
 
 // Required env: TG_GROUP_ID    — Telegram group chat ID for one-time member invite links
@@ -966,6 +970,7 @@ client.on("clientReady", () => {
 });
 
 client.on("messageCreate", async (message) => {
+  console.log("Discord message received:", message.channel.type, message.author?.username);
   if (message.author.bot) return;
 
   // Xenon Ally AI — Discord DMs only
