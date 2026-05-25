@@ -346,7 +346,8 @@ async function getCryptoData() {
   const coins = res.data;
   const btc = coins.find((c) => c.id === "bitcoin");
   const eth = coins.find((c) => c.id === "ethereum");
-  const alts = coins.filter((c) => c.id !== "bitcoin" && c.id !== "ethereum").slice(0, 3);
+  const STABLECOINS = new Set(["tether", "usd-coin", "binance-usd", "dai", "true-usd", "frax", "first-digital-usd", "usdd", "ethena-usde"]);
+  const alts = coins.filter((c) => c.id !== "bitcoin" && c.id !== "ethereum" && !STABLECOINS.has(c.id)).slice(0, 3);
   return { btc, eth, alts };
 }
 
