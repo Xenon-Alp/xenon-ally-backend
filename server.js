@@ -850,21 +850,24 @@ app.post("/whop-webhook", async (req, res) => {
 
   console.log("📩 Whop webhook received:", JSON.stringify(req.body, null, 2));
 
-  const { action, data } = req.body;
-  const membership = data?.object;
+  const { type, data } = req.body;
+  const membership = data;
 
   if (!membership) {
-    console.log("⚠️ Whop webhook missing data.object — full body above");
+    console.log("⚠️ Whop webhook missing data — full body above");
     return;
   }
 
-  console.log("Whop event:", action, "| TV username:", getTradingViewUsername(membership) || "NOT FOUND");
+  console.log("Whop event:", type, "| TV username:", getTradingViewUsername(membership) || "NOT FOUND");
 
   const tvUsername = getTradingViewUsername(membership);
   const discordId = membership.discord?.id;
   const telegramId = membership.telegram_account_id;
 
-  if (action === "membership.went_valid") {
+  const isActivation = type === "membership.went_valid" || type === "membership.activated";
+  const isDeactivation = type === "membership.went_invalid" || type === "membership.deactivated";
+
+  if (isActivation) {
     if (tvUsername) {
       try {
         await updateTradingViewAccess(tvUsername, "add");
@@ -918,7 +921,7 @@ Your membership is now active.
       }
     }
 
-  } else if (action === "membership.went_invalid") {
+  } else if (isDeactivation) {
     if (tvUsername) {
       try {
         await updateTradingViewAccess(tvUsername, "remove");
