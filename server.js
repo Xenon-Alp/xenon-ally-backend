@@ -2,6 +2,41 @@ const fs = require("fs");
 
 let users = {};
 
+// ─── Whop membership cache ────────────────────────────────────────────────────
+// Single shared cache used by both checkWhopSubscription and isActiveSubscriber.
+// Refreshed every 5 min, or immediately when a Whop webhook fires.
+let membershipCache = { data: null, fetchedAt: 0 };
+const CACHE_TTL = 5 * 60 * 1000;
+
+async function getAllMemberships() {
+  if (membershipCache.data && Date.now() - membershipCache.fetchedAt < CACHE_TTL) {
+    return membershipCache.data;
+  }
+  let memberships = [];
+  let page = 1;
+  let hasMore = true;
+  while (hasMore) {
+    const res = await axios.get("https://api.whop.com/api/v2/memberships", {
+      headers: { Authorization: `Bearer ${process.env.WHOP_API_KEY}` },
+      params: { page, per: 100 },
+    });
+    const batch = res.data.data || [];
+    memberships = memberships.concat(batch);
+    hasMore = batch.length === 100;
+    page++;
+  }
+  membershipCache.data = memberships;
+  membershipCache.fetchedAt = Date.now();
+  console.log(`✅ Whop cache refreshed: ${memberships.length} members`);
+  return memberships;
+}
+
+function invalidateMembershipCache() {
+  membershipCache.fetchedAt = 0;
+  console.log("🔄 Whop membership cache invalidated");
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const linkedDiscordUsers = {};
 
 let postMode = "manual"; // "manual" = private preview to owner, "auto" = post publicly
@@ -27,20 +62,7 @@ function checkRateLimit(key) {
 
 async function isActiveSubscriber(id, platform = "telegram") {
   try {
-    const res = await axios.get("https://api.whop.com/api/v2/memberships", {
-      headers: { Authorization: `Bearer ${process.env.WHOP_API_KEY}` },
-      params: { page: 1, per: 100 },
-    });
-    const memberships = res.data.data || [];
-    if (platform === "telegram" && String(id) === "7452629458") {
-      console.log("[DEBUG 7452629458] Full Whop memberships response:", JSON.stringify(memberships, null, 2));
-    }
-    if (platform === "discord") {
-      console.log(`[DEBUG Discord] Checking ID: ${id} against ${memberships.length} memberships`);
-      memberships.forEach((m) => {
-        console.log(`[DEBUG Discord] membership discord.id=${m.discord?.id} status=${m.status} valid=${m.valid}`);
-      });
-    }
+    const memberships = await getAllMemberships();
     return memberships.some((m) => {
       const match =
         platform === "discord"
@@ -476,26 +498,7 @@ app.get("/", (req, res) => {
 
 async function checkWhopSubscription(username) {
   try {
-    let memberships = [];
-let page = 1;
-let hasMore = true;
-
-while (hasMore) {
-  const res = await axios.get("https://api.whop.com/api/v2/memberships", {
-    headers: {
-      Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
-    },
-    params: {
-      page,
-      per: 100,
-    },
-  });
-
-  memberships = memberships.concat(res.data.data || []);
-
-  hasMore = (res.data.data || []).length === 100;
-  page++;
-}
+    const memberships = await getAllMemberships();
   
    const signalUsername = String(username || "")
   .trim()
@@ -847,6 +850,8 @@ ${insight}
 
 app.post("/whop-webhook", async (req, res) => {
   res.sendStatus(200); // Acknowledge immediately so Whop doesn't retry
+
+  invalidateMembershipCache(); // membership changed — force fresh fetch next time
 
   console.log("📩 Whop webhook received:", JSON.stringify(req.body, null, 2));
 
