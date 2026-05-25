@@ -848,12 +848,17 @@ ${insight}
 app.post("/whop-webhook", async (req, res) => {
   res.sendStatus(200); // Acknowledge immediately so Whop doesn't retry
 
+  console.log("📩 Whop webhook received:", JSON.stringify(req.body, null, 2));
+
   const { action, data } = req.body;
   const membership = data?.object;
 
-  if (!membership) return;
+  if (!membership) {
+    console.log("⚠️ Whop webhook missing data.object — full body above");
+    return;
+  }
 
-  console.log("Whop event:", action);
+  console.log("Whop event:", action, "| TV username:", getTradingViewUsername(membership) || "NOT FOUND");
 
   const tvUsername = getTradingViewUsername(membership);
   const discordId = membership.discord?.id;
