@@ -63,13 +63,17 @@ function checkRateLimit(key) {
 async function isActiveSubscriber(id, platform = "telegram") {
   try {
     const memberships = await getAllMemberships();
-    return memberships.some((m) => {
-      const match =
-        platform === "discord"
-          ? m.discord?.id === String(id)
-          : String(m.telegram_account_id) === String(id);
-      return match && (m.status === "active" || m.status === "completed" || m.status === "trialing" || m.valid === true);
-    });
+    const match = memberships.find((m) =>
+      platform === "discord"
+        ? m.discord?.id === String(id)
+        : String(m.telegram_account_id) === String(id)
+    );
+    if (!match) {
+      console.log(`[isActiveSubscriber] No membership found for ${platform} ID: ${id}`);
+      return false;
+    }
+    console.log(`[isActiveSubscriber] Found membership for ${platform} ID: ${id} | status: ${match.status} | product: ${match.product_id || match.plan?.product_id} | valid: ${match.valid}`);
+    return match.status === "active" || match.status === "completed" || match.status === "trialing" || match.valid === true;
   } catch (err) {
     console.error("Whop subscriber check failed:", err.message);
     return false;
