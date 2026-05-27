@@ -68,7 +68,7 @@ async function isActiveSubscriber(id, platform = "telegram") {
         platform === "discord"
           ? m.discord?.id === String(id)
           : String(m.telegram_account_id) === String(id);
-      return match && (m.status === "active" || m.status === "completed" || m.valid === true);
+      return match && (m.status === "active" || m.status === "completed" || m.status === "trialing" || m.valid === true);
     });
   } catch (err) {
     console.error("Whop subscriber check failed:", err.message);
