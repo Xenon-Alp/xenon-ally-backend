@@ -166,3 +166,58 @@ Every alert is branded as Xenon Ally and includes:
 - Keep Ally message formatting consistent and on-brand
 - Test webhook logic carefully before deploying to Railway
 - users.json is critical — handle with care, backup before editing
+
+
+## Backend Tasks Completed
+
+### ✅ Task 1 — Telegram /start Access System (DONE)
+- User clicks /start on Xenon Ally bot
+- Bot checks Whop API for their Telegram ID
+- Active member → sends TG group invite link
+- Expired → "Renew here → xenonalpha.com"
+- Not found → "Get access here → xenonalpha.com"
+- Bot runs in WEBHOOK mode (not polling — was causing 409 conflict)
+- Webhook URL: https://xenon-ally-backend-production.up.railway.app/telegram-webhook
+- TG Group ID: -1003964213191
+
+### 🔄 Task 2 — TradingView Auto Access (IN PROGRESS)
+- Whop webhook → reads TV username → auto adds to indicator
+- Auto removes when subscription expires
+- Script ID: iGIp9Joh
+- Need TV_SESSION_ID, TV_SESSION_SIGN, TV_CSRF_TOKEN from TradingView cookies
+- Endpoint: /whop-webhook
+
+### ⏳ Task 3 — TP Hit Auto Post (PENDING)
+- TP detected from TradingView webhook
+- !mode manual → sends caption to founder Telegram privately
+- !mode auto → posts to public TG channel
+- ON/OFF toggle via Discord command
+
+### ⏳ Task 4 — Daily Market Brief (PENDING)
+- Scheduled morning job
+- Pulls live market data
+- Posts to TG Group Daily Brief topic + Discord announcements
+
+### ⏳ Task 5 — Xenon Ally AI Assistant (PENDING)
+- Anthropic API connected to Telegram bot
+- Private DM ONLY — not in group
+- Rate limiting
+- Xenon Ally personality
+- Uses Claude Sonnet 4
+
+## Telegram Structure
+- Public Channel → TP hits posted here (proof for everyone)
+- Community Group (members only via /start):
+  Topics: Announcements, Daily Brief, Results, Setup Guide, Community, Support
+- Ally Bot DMs → signals + AI assistant (private only)
+
+## Environment Variables on Railway
+- TELEGRAM_BOT_TOKEN ✅
+- TG_GROUP_ID = -1003964213191 ✅
+- WHOP_API_KEY ✅
+- RESEND_API_KEY ✅
+- TV_SCRIPT_ID = iGIp9Joh (added)
+- TV_SESSION_ID (still needed)
+- TV_SESSION_SIGN (still needed)
+- TV_CSRF_TOKEN (still needed)
+- ANTHROPIC_API_KEY (needed for Task 5)
